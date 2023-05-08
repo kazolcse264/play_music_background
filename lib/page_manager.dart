@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'notifiers/play_button_notifier.dart';
 import 'notifiers/progress_notifier.dart';
@@ -13,7 +11,7 @@ class PageManager {
   final currentSongTitleNotifier = ValueNotifier<String>('');
   final playlistNotifier = ValueNotifier<List<String>>([]);
 
-  final fileListNotifier = ValueNotifier<List<Map<String, dynamic>> >([{}]);
+  final fileListNotifier = ValueNotifier<List<Map<String, dynamic>>>([{}]);
 
   final progressNotifier = ProgressNotifier();
   final repeatButtonNotifier = RepeatButtonNotifier();
@@ -35,7 +33,7 @@ class PageManager {
     _listenToChangesInSong();
   }
 
- Future<void> _loadPlaylist() async {
+  Future<void> _loadPlaylist() async {
     final songRepository = getIt<PlaylistRepository>();
     final playlist = await songRepository.fetchInitialPlaylist();
     final mediaItems = playlist
@@ -52,56 +50,6 @@ class PageManager {
     _audioHandler.addQueueItems(mediaItems);
   }
 
-/*  Future<void> _loadPlaylist() async {
-    final songRepository = getIt<PlaylistRepository>();
-    final playlist = await songRepository.fetchInitialPlaylist();
-    //final mediaItems = getMediaItemsFromFiles(playlist);
-    final mediaItems = convertFilesToMediaItems(playlist);
-    _audioHandler.addQueueItems(mediaItems);
-  }*/
-/*  List<MediaItem> convertFilesToMediaItems(List<File> files) {
-    return files.map((file) => MediaItem(
-      id: file.path,
-      album: "",
-      title: file.path.split('/').last,
-      artist: "",
-      duration: null,
-      artUri: null,
-      extras: {"file": file},
-    )).toList();
-  }*/
-/*  Future<List<MediaItem>> getMediaItemsFromFiles(List<File> files) async {
-    final FlutterAudioQuery audioQuery = FlutterAudioQuery();
-
-    // Create a list of MediaItems from the list of Files
-    List<MediaItem> mediaItems = [];
-    for (File file in files) {
-      // Get the metadata for the file using FlutterAudioQuery
-      final List<SongInfo> songInfoList = await audioQuery.getSongs(
-        // paths: [file.path],
-        // Set the song title as the filename if the title is null
-        sortType: SongSortType.DEFAULT,
-      );
-      if (songInfoList.isNotEmpty) {
-        final SongInfo songInfo = songInfoList[0];
-        // Create a MediaItem from the metadata and file
-        final MediaItem mediaItem = MediaItem(
-          id: songInfo.id,
-          album: songInfo.album,
-          title: songInfo.title ?? file.path.split('/').last,
-          artist: songInfo.artist,
-          //duration: Duration(milliseconds: songInfo.duration),
-          artUri: songInfo.albumArtwork != null
-              ? Uri.file(songInfo.albumArtwork)
-              : null,
-          extras: {"file": file},
-        );
-        mediaItems.add(mediaItem);
-      }
-    }
-    return mediaItems;
-  }*/
-
   void _listenToChangesInPlaylist() {
     _audioHandler.queue.listen((playlist) {
       if (playlist.isEmpty) {
@@ -114,18 +62,7 @@ class PageManager {
       _updateSkipButtons();
     });
   }
-  /*void _listenToChangesInPlaylist() {
-    _audioHandler.queue.listen((playlist) {
-      if (playlist.isEmpty) {
-        fileListNotifier.value = [{}];
-        currentSongTitleNotifier.value = '';
-      } else {
-        final newList = playlist.map((item) => item).toList();
-        fileListNotifier.value = newList.cast<Map<String, dynamic>>();
-      }
-      _updateSkipButtons();
-    });
-  }*/
+
   void _listenToPlaybackState() {
     _audioHandler.playbackState.listen((playbackState) {
       final isPlaying = playbackState.playing;
@@ -195,9 +132,11 @@ class PageManager {
       isLastSongNotifier.value = playlist.last == mediaItem;
     }
   }
+
   void skipToQueueItem(int index, String name) {
     _audioHandler.skipToQueueItem(index);
   }
+
   void play() => _audioHandler.play();
 
   void pause() => _audioHandler.pause();
@@ -233,27 +172,6 @@ class PageManager {
       _audioHandler.setShuffleMode(AudioServiceShuffleMode.none);
     }
   }
-
-  Future<void> add() async {
-    final songRepository = getIt<PlaylistRepository>();
-    final song = await songRepository.fetchAnotherSong();
-    final mediaItem = MediaItem(
-      id: song['id'] ?? '',
-      album: song['album'] ?? '',
-      title: song['title'] ?? '',
-      extras: {
-        'url': song['url'],
-      },
-      artUri: Uri.parse(song['artUri']!),
-    );
-    _audioHandler.addQueueItem(mediaItem);
-  }
-
-/*  void remove() {
-    final lastIndex = _audioHandler.queue.value.length - 1;
-    if (lastIndex < 0) return;
-    _audioHandler.removeQueueItemAt(lastIndex);
-  }*/
 
   void dispose() {
     _audioHandler.customAction('dispose');

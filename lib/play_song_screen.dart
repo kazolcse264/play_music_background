@@ -1,9 +1,7 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
-import 'package:just_audio/just_audio.dart';
+
 import 'package:permission_handler/permission_handler.dart';
-import 'package:play_music_background/models/media_item_model.dart';
-import 'package:play_music_background/services/audio_handler.dart';
 
 import 'package:play_music_background/services/service_locator.dart';
 import 'notifiers/play_button_notifier.dart';
@@ -22,7 +20,9 @@ import 'package:http/http.dart' as http;
 class PlaySongScreen extends StatefulWidget {
   final Map<String, dynamic> mediaItem;
   final int index;
-  const PlaySongScreen({super.key, required this.mediaItem,required this.index});
+
+  const PlaySongScreen(
+      {super.key, required this.mediaItem, required this.index});
 
   @override
   State<PlaySongScreen> createState() => _PlaySongScreenState();
@@ -30,7 +30,7 @@ class PlaySongScreen extends StatefulWidget {
 
 class _PlaySongScreenState extends State<PlaySongScreen> {
   final _audioHandler = getIt<AudioHandler>();
- // final audioPlayer = AudioPlayer();
+
   Future<Directory?> get getExternalVisibleDir async {
     if (await Directory(
             '/storage/emulated/0/Android/data/com.example.play_music_background/MyEncFolder')
@@ -69,22 +69,9 @@ class _PlaySongScreenState extends State<PlaySongScreen> {
     super.initState();
     requestStoragePermission();
     getIt<PageManager>().init();
-    //audioServiceInitialization();
-    downloadAndGetNormalFile();
-    //getAllTempFiles();
 
+    downloadAndGetNormalFile();
   }
-/*  Future<List<File>> getAllTempFiles() async {
-    final Directory tempDir = await getTemporaryDirectory();
-    final List<FileSystemEntity> files = tempDir.listSync(recursive: true);
-    final List<File> mp3Files = files
-        .where((file) =>
-    file.path.endsWith('.mp3') &&
-        FileSystemEntity.isFileSync(file.path))
-        .map((file) => File(file.path))
-        .toList();
-    return mp3Files;
-  }*/
 
   void downloadAndGetNormalFile() async {
     if (_isGranted) {
@@ -98,8 +85,7 @@ class _PlaySongScreenState extends State<PlaySongScreen> {
         var filePath = await _getNormalFile(
             d, '${widget.mediaItem['title']}.mp3', context);
         widget.mediaItem["url"] = filePath;
-        /*filePathListMap[0] = widget.mediaItem;
-        print(filePathListMap);*/
+
         final newMediaItem = MediaItem(
           id: widget.mediaItem["id"],
           title: widget.mediaItem["title"],
@@ -108,12 +94,10 @@ class _PlaySongScreenState extends State<PlaySongScreen> {
           artUri: Uri.parse(widget.mediaItem['artUri']!),
         );
 
-
         _audioHandler.removeQueueItemAt(0);
         _audioHandler.addQueueItem(newMediaItem);
         final pageManager = getIt<PageManager>();
         pageManager.play();
-
       }
     } else {
       print('No Permission Granted');
@@ -121,40 +105,30 @@ class _PlaySongScreenState extends State<PlaySongScreen> {
     }
   }
 
- /* @override
-  void dispose() {
-    getIt<PageManager>().dispose();
-    getIt<PageManager>().stop();
-    super.dispose();
-  }*/
-
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Playing Screen'),
         automaticallyImplyLeading: false,
-        leading: IconButton(icon: const Icon(Icons.arrow_back),onPressed: (){
-          //_audioHandler.stop();
-          //_audioHandler.customAction('dispose');
-          //print('hgfffffffffffh ${_audioHandler.stop().toString()}');
-          //audioPlayer.stop();
-          //audioPlayer.dispose();
-         // pageManager.dispose();
-          //pageManager.stop();
-          Navigator.pop(context);
-          print('Back to previous screen');
-        },),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pop(context);
+            print('Back to previous screen');
+          },
+        ),
       ),
       body: (_isDownloading)
           ? Center(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisAlignment: MainAxisAlignment.center,
               children: const [
                 CircularProgressIndicator(),
-                SizedBox(height: 10,),
+                SizedBox(
+                  height: 10,
+                ),
                 Text('Data Downloading ...'),
               ],
             ))
@@ -164,7 +138,6 @@ class _PlaySongScreenState extends State<PlaySongScreen> {
                 children: const [
                   CurrentSongTitle(),
                   Playlist(),
-                  //AddRemoveSongButtons(),
                   AudioProgressBar(),
                   AudioControlButtons(),
                 ],
@@ -204,9 +177,7 @@ class _PlaySongScreenState extends State<PlaySongScreen> {
       var plainData = await _decryptData(encData);
       var tempFile = await _createTempFile(fileName);
       tempFile.writeAsBytesSync(plainData);
-      /* final audioPlayer = AudioPlayer();
-      audioPlayer.setFilePath(tempFile.path);*/
-      //widget.audioPlayer.play();
+
       print('TempFile : ${tempFile.path}');
       print('File Decrypted Successfully... ');
       return tempFile.path;
@@ -250,7 +221,7 @@ class _PlaySongScreenState extends State<PlaySongScreen> {
 
   Future<File> _createTempFile(String fileName) async {
     final directory = await getTemporaryDirectory();
-    //final tempFileName = fileName;
+
     final tempFilePath = '${directory.path}/$fileName';
     return File(tempFilePath);
   }
@@ -280,63 +251,9 @@ class CurrentSongTitle extends StatelessWidget {
   }
 }
 
-/*class Playlist extends StatelessWidget {
-  const Playlist({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    final pageManager = getIt<PageManager>();
-    return Expanded(
-      child: ValueListenableBuilder<Map<String, dynamic>>(
-        valueListenable: pageManager.fileListNotifier,
-        builder: (context, playlistTitles, _) {
-          print(playlistTitles.length);
-          return ListView.builder(
-            itemCount: playlistTitles.length,
-            itemBuilder: (context, index) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: ListTile(
-                  tileColor: Colors.grey.shade200,
-                  title: Text(playlistTitles[index]),
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-}*/
-/*class Playlist extends StatelessWidget {
-  const Playlist({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    final pageManager = getIt<PageManager>();
-    return Expanded(
-      child: ValueListenableBuilder<List<String>>(
-        valueListenable: pageManager.playlistNotifier,
-        builder: (context, playlistTitles, _) {
-          return ListView.builder(
-            itemCount: playlistTitles.length,
-            itemBuilder: (context, index) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: ListTile(
-                  tileColor: Colors.grey.shade200,
-                  title: Text(playlistTitles[index]),
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-}*/
 class Playlist extends StatelessWidget {
   const Playlist({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     final pageManager = getIt<PageManager>();
@@ -353,13 +270,7 @@ class Playlist extends StatelessWidget {
               children: [
                 InkWell(
                   onTap: () {
-                    /*var current_id = pageManager.getCurrentSongId();
-                    var current_playlist = pageManager.getCurrentPlaylist();*/
                     pageManager.skipToQueueItem(index, playlistTitles[index]);
-                    // pageManager.updateMyQueueItem(
-                    //   current_playlist[int.parse(current_id)],
-                    //   int.parse(current_id),
-                    // );
                   },
                   child: ListTile(
                     //leading: CurrentSongImage(),
@@ -380,32 +291,6 @@ class Playlist extends StatelessWidget {
     );
   }
 }
-/*class AddRemoveSongButtons extends StatelessWidget {
-  const AddRemoveSongButtons({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    final pageManager = getIt<PageManager>();
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          FloatingActionButton(
-            heroTag: 'Add',
-            onPressed: pageManager.add,
-            child: const Icon(Icons.add),
-          ),
-          FloatingActionButton(
-            heroTag: 'Remove',
-            onPressed: pageManager.remove,
-            child: const Icon(Icons.remove),
-          ),
-        ],
-      ),
-    );
-  }
-}*/
 
 class AudioProgressBar extends StatelessWidget {
   const AudioProgressBar({Key? key}) : super(key: key);
