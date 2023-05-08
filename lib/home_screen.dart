@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:play_music_background/playlist_song_screen.dart';
 import 'package:play_music_background/widgets/song_card.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -31,16 +32,38 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: SafeArea(
-        child: Scaffold(
-          body: SingleChildScrollView(
-            child: Column(
-              children: [
-                _TrendingMusic(audioList: audioList),
-              ],
+    return SafeArea(
+      child: Scaffold(
+        appBar: AppBar(
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const PlaylistSongScreen(),
+                  ),
+                );
+              },
+              child: const Padding(
+                padding: EdgeInsets.only(right: 10.0),
+                child: Text(
+                  'Go to playlist',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
             ),
+          ],
+        ),
+        body: SingleChildScrollView(
+          child: Column(
+            children: [
+              _TrendingMusic(audioList: audioList),
+            ],
           ),
         ),
       ),

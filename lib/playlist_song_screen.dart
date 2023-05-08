@@ -1,8 +1,5 @@
-import 'package:audio_service/audio_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-
-import 'package:permission_handler/permission_handler.dart';
 
 import 'package:play_music_background/services/service_locator.dart';
 import 'notifiers/play_button_notifier.dart';
@@ -11,113 +8,27 @@ import 'notifiers/repeat_button_notifier.dart';
 import 'page_manager.dart';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 
-import 'dart:io';
-import 'package:encrypt/encrypt.dart' as enc;
-import 'package:path_provider/path_provider.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:http/http.dart' as http;
-
-class PlaySongScreen extends StatefulWidget {
-  final Map<String, dynamic> mediaItem;
-
-  const PlaySongScreen({
+class PlaylistSongScreen extends StatefulWidget {
+  const PlaylistSongScreen({
     super.key,
-    required this.mediaItem,
   });
 
   @override
-  State<PlaySongScreen> createState() => _PlaySongScreenState();
+  State<PlaylistSongScreen> createState() => _PlaylistSongScreenState();
 }
 
-class _PlaySongScreenState extends State<PlaySongScreen> {
-  final _audioHandler = getIt<AudioHandler>();
-
-  Future<Directory?> get getExternalVisibleDir async {
-    if (await Directory(
-            '/storage/emulated/0/Android/data/com.example.play_music_background/MyEncFolder')
-        .exists()) {
-      final externalDir = Directory(
-          '/storage/emulated/0/Android/data/com.example.play_music_background/MyEncFolder');
-      return externalDir;
-    } else {
-      await Directory(
-              '/storage/emulated/0/Android/data/com.example.play_music_background/MyEncFolder')
-          .create(recursive: true);
-      final externalDir = Directory(
-          '/storage/emulated/0/Android/data/com.example.play_music_background/MyEncFolder');
-      return externalDir;
-    }
-  }
-
-  bool _isGranted = true;
-  bool _isDownloading = true;
-
-  requestStoragePermission() async {
-    if (!await Permission.storage.isGranted) {
-      PermissionStatus result = await Permission.storage.request();
-      if (result.isGranted) {
-        setState(() {
-          _isGranted = true;
-        });
-      } else {
-        _isGranted = false;
-      }
-    }
-  }
-
+class _PlaylistSongScreenState extends State<PlaylistSongScreen> {
   @override
   void initState() {
     super.initState();
-
-    requestStoragePermission();
-    final queueLength = _audioHandler.queue.value.length;
-    for (int i = 1; i <= queueLength; i++) {
-      _audioHandler.removeQueueItemAt(queueLength - i);
-    }
     getIt<PageManager>().init();
-    downloadAndGetNormalFile();
-  }
-
-  void downloadAndGetNormalFile() async {
-    if (_isGranted) {
-      Directory? d = await getExternalVisibleDir;
-      await _downloadAndCreate(
-          widget.mediaItem['url'], d, '${widget.mediaItem['title']}.mp3');
-      setState(() {
-        _isDownloading = false;
-      });
-      if (_isDownloading == false) {
-        var filePath = await _getNormalFile(
-          d,
-          '${widget.mediaItem['title']}.mp3',
-        );
-        widget.mediaItem["url"] = filePath;
-
-        final newMediaItem = MediaItem(
-          id: widget.mediaItem["id"],
-          title: widget.mediaItem["title"],
-          album: widget.mediaItem["album"],
-          extras: {'url': widget.mediaItem['url']},
-          artUri: Uri.parse(widget.mediaItem['artUri']!),
-        );
-        final pageManager = getIt<PageManager>();
-        _audioHandler.removeQueueItemAt(0);
-        _audioHandler.addQueueItem(newMediaItem);
-        pageManager.play();
-      }
-    } else {
-      if (kDebugMode) {
-        print('No Permission Granted');
-      }
-      requestStoragePermission();
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Playing Screen'),
+        title: const Text('Playlist Song Screen'),
         automaticallyImplyLeading: false,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -129,137 +40,20 @@ class _PlaySongScreenState extends State<PlaySongScreen> {
           },
         ),
       ),
-      body: (_isDownloading)
-          ? Center(
-              child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                CircularProgressIndicator(),
-                SizedBox(
-                  height: 10,
-                ),
-                Text('Data Downloading ...'),
-              ],
-            ))
-          : Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                children: const [
-                  CurrentSongTitle(),
-                  Playlist(),
-                  AudioProgressBar(),
-                  AudioControlButtons(),
-                ],
-              ),
-            ),
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          children: const [
+            CurrentSongTitle(),
+            Playlist(),
+            AddRemoveSongButtons(),
+            AudioProgressBar(),
+            AudioControlButtons(),
+          ],
+        ),
+      ),
     );
   }
-
-  _downloadAndCreate(String audioUrl, Directory? d, String fileName) async {
-    bool isDownloaded = await checkIfFileExists('${d!.path}/$fileName.aes');
-    if (isDownloaded) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('File already downloaded!!!'),
-          duration: Duration(
-            seconds: 1,
-          ),
-        ));
-      }
-    } else {
-      if (await canLaunchUrl(Uri.parse(audioUrl))) {
-        if (kDebugMode) {
-          print('Data downloading...');
-        }
-        var resp = await http.get(Uri.parse(audioUrl));
-        var encResult = _encryptData(resp.bodyBytes);
-        String p = await _writeData(encResult, '${d.path}/$fileName.aes');
-        if (kDebugMode) {
-          print('File Encrypted successfully...$p');
-        }
-      } else {
-        if (kDebugMode) {
-          print('Can\'t launch url');
-        }
-      }
-    }
-  }
-
-  Future<String> _getNormalFile(Directory? d, String fileName) async {
-    try {
-      Uint8List encData = await _readData('${d!.path}/$fileName.aes');
-      var plainData = await _decryptData(encData);
-      var tempFile = await _createTempFile(fileName);
-      tempFile.writeAsBytesSync(plainData);
-
-      if (kDebugMode) {
-        print('TempFile : ${tempFile.path}');
-      }
-      if (kDebugMode) {
-        print('File Decrypted Successfully... ');
-      }
-      return tempFile.path;
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error : ${e.toString()}');
-      }
-      return '';
-    }
-  }
-
-  Future<bool> checkIfFileExists(String filePath) async {
-    File file = File(filePath);
-    return await file.exists();
-  }
-
-  _encryptData(Uint8List plainString) {
-    if (kDebugMode) {
-      print('Encrypting File...');
-    }
-    final encrypted =
-        MyEncrypt.myEncrypter.encryptBytes(plainString, iv: MyEncrypt.myIv);
-
-    return encrypted.bytes;
-  }
-
-  _writeData(encResult, String fileNamedWithPath) async {
-    if (kDebugMode) {
-      print('Writting data...');
-    }
-    File f = File(fileNamedWithPath);
-    await f.writeAsBytes(encResult);
-    return f.absolute.toString();
-  }
-
-  _readData(String fileNamedWithPath) async {
-    if (kDebugMode) {
-      print('Reading data...');
-    }
-    File f = File(fileNamedWithPath);
-    return await f.readAsBytes();
-  }
-
-  _decryptData(Uint8List encData) {
-    if (kDebugMode) {
-      print('File decryption in progress...');
-    }
-    enc.Encrypted en = enc.Encrypted(encData);
-    return MyEncrypt.myEncrypter.decryptBytes(en, iv: MyEncrypt.myIv);
-  }
-
-  Future<File> _createTempFile(String fileName) async {
-    final directory = await getTemporaryDirectory();
-
-    final tempFilePath = '${directory.path}/$fileName';
-    return File(tempFilePath);
-  }
-}
-
-class MyEncrypt {
-  static final myKey = enc.Key.fromUtf8('AshikujjamanAshikujjamanKazol299');
-  static final myIv = enc.IV.fromUtf8('KazolAshikujjama');
-  static final myEncrypter = enc.Encrypter(enc.AES(myKey));
 }
 
 class CurrentSongTitle extends StatelessWidget {
@@ -302,11 +96,9 @@ class Playlist extends StatelessWidget {
                     pageManager.skipToQueueItem(index, playlistTitles[index]);
                   },
                   child: ListTile(
-                    //leading: CurrentSongImage(),
                     title: Text(
                       playlistTitles[index],
                     ),
-                    //trailing: AddRemoveSongButtons(),
                   ),
                 ),
                 const SizedBox(
@@ -459,6 +251,33 @@ class NextSongButton extends StatelessWidget {
           onPressed: (isLast) ? null : pageManager.next,
         );
       },
+    );
+  }
+}
+
+class AddRemoveSongButtons extends StatelessWidget {
+  const AddRemoveSongButtons({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final pageManager = getIt<PageManager>();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          FloatingActionButton(
+            heroTag: 'Add',
+            onPressed: pageManager.add,
+            child: const Icon(Icons.add),
+          ),
+          FloatingActionButton(
+            heroTag: 'Remove',
+            onPressed: pageManager.remove,
+            child: const Icon(Icons.remove),
+          ),
+        ],
+      ),
     );
   }
 }

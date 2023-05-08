@@ -1,5 +1,7 @@
+import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import '../play_song_screen.dart';
+import '../services/service_locator.dart';
 
 class SongCard extends StatefulWidget {
   const SongCard({
@@ -24,8 +26,9 @@ class _SongCardState extends State<SongCard> {
           Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) =>
-                    PlaySongScreen(mediaItem: widget.song, index: widget.index),
+                builder: (context) => PlaySongScreen(
+                  mediaItem: widget.song,
+                ),
               ));
         }
       },
