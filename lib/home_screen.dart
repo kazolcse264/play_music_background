@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:play_music_background/widgets/song_card.dart';
 
@@ -26,7 +27,6 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     readAudio();
-
   }
 
   @override
@@ -46,8 +46,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-
-
 }
 
 
@@ -69,18 +67,15 @@ class _TrendingMusic extends StatelessWidget {
       ),
       child: Column(
         children: [
-           Padding(
-            padding: const EdgeInsets.only(right: 20.0),
-            child: Text('Trending Music', style: Theme.of(context).textTheme.headlineMedium!.copyWith(
-              color: Colors.deepPurple,
-              fontWeight: FontWeight.bold,
-            ),),
+          const Padding(
+            padding: EdgeInsets.only(right: 20.0),
+            child: Text('Trending Music'),
           ),
           const SizedBox(height: 20),
           SizedBox(
+            height: MediaQuery.of(context).size.height * 0.27,
             child: ListView.builder(
-              //scrollDirection: Axis.vertical,
-              shrinkWrap: true,
+              scrollDirection: Axis.horizontal,
               itemCount: audioList.length,
               itemBuilder: (context, index) {
                 return SongCard(song: audioList[index],index : index);
@@ -93,7 +88,7 @@ class _TrendingMusic extends StatelessWidget {
   }
 }
 
-/*class _DiscoverMusic extends StatelessWidget {
+class _DiscoverMusic extends StatelessWidget {
   const _DiscoverMusic({
     Key? key,
   }) : super(key: key);
@@ -203,4 +198,4 @@ class _CustomAppBar extends StatelessWidget with PreferredSizeWidget {
 
   @override
   Size get preferredSize => const Size.fromHeight(56.0);
-}*/
+}

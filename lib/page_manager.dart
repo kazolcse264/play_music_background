@@ -26,13 +26,13 @@ class PageManager {
 
   // Events: Calls coming from the UI
   void init() async {
-   // await _loadPlaylist();
-    //_listenToChangesInPlaylist();
+    await _loadPlaylist();
+    _listenToChangesInPlaylist();
     _listenToPlaybackState();
-   // _listenToCurrentPosition();
-    //_listenToBufferedPosition();
-    //_listenToTotalDuration();
-    //_listenToChangesInSong();
+    _listenToCurrentPosition();
+    _listenToBufferedPosition();
+    _listenToTotalDuration();
+    _listenToChangesInSong();
   }
 
  Future<void> _loadPlaylist() async {

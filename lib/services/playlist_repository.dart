@@ -44,7 +44,7 @@ abstract class PlaylistRepository {
 class DemoPlaylist extends PlaylistRepository {
   @override
   Future<List<Map<String, String>>> fetchInitialPlaylist(
-      {int length = 5}) async {
+      {int length = 0}) async {
     return List.generate(length, (index) => _nextSong());
       [
       {

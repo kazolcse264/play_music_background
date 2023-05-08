@@ -20,9 +20,9 @@ class MyAudioHandler extends BaseAudioHandler {
   MyAudioHandler() {
     _loadEmptyPlaylist();
     _notifyAudioHandlerAboutPlaybackEvents();
-    //_listenForDurationChanges();
-   // _listenForCurrentSongIndexChanges();
-    //_listenForSequenceStateChanges();
+    _listenForDurationChanges();
+    _listenForCurrentSongIndexChanges();
+    _listenForSequenceStateChanges();
   }
 
   Future<void> _loadEmptyPlaylist() async {
@@ -133,11 +133,11 @@ class MyAudioHandler extends BaseAudioHandler {
   }
 
   UriAudioSource _createAudioSource(MediaItem mediaItem) {
-    return /*AudioSource.uri(
+    return AudioSource.uri(
       Uri.parse(mediaItem.extras!['url']),
       tag: mediaItem,
-    );*/
-    AudioSource.file(mediaItem.extras!['url'] as String,tag: mediaItem,);
+    );
+    //AudioSource.file(mediaItem.extras!['url'] as String,tag: mediaItem,);
 
   }
 
@@ -213,5 +213,4 @@ class MyAudioHandler extends BaseAudioHandler {
     await _player.stop();
     return super.stop();
   }
-
 }
