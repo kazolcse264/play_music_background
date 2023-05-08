@@ -1,7 +1,5 @@
-import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import '../play_song_screen.dart';
-import '../services/service_locator.dart';
 
 class SongCard extends StatefulWidget {
   const SongCard({
