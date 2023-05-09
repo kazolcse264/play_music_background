@@ -273,11 +273,6 @@ class _SongCardState extends State<SongCard> {
                 (isFileAlreadyDownloaded)
                     ? InkWell(
                   onTap: ()async{
-                   Directory? d = await getExternalVisibleDir;
-                    var filePath = await _getNormalFile(
-                        d, '${widget.song['title']}.mp3',);
-                    widget.song["url"] = filePath;
-
                     final newMediaItem = MediaItem(
                       id: widget.song["id"],
                       title: widget.song["title"],
@@ -289,10 +284,6 @@ class _SongCardState extends State<SongCard> {
                     final pageManager = getIt<PageManager>();
                     audioHandler.addQueueItem(newMediaItem);
                     pageManager.play();
-
-                    if (kDebugMode) {
-                      print('********* ${audioHandler.queue.value}');
-                    }
                     if (mounted) {
                       Navigator.push(
                           context,

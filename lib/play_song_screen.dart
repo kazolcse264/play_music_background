@@ -1,9 +1,6 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-
-import 'package:play_music_background/playlist_song_screen.dart';
-
 import 'package:play_music_background/services/service_locator.dart';
 import 'notifiers/play_button_notifier.dart';
 import 'notifiers/progress_notifier.dart';
@@ -22,16 +19,19 @@ class PlaySongScreen extends StatefulWidget {
 
 class _PlaySongScreenState extends State<PlaySongScreen> {
   final audioHandler = getIt<AudioHandler>();
+
   @override
   void initState() {
     super.initState();
     getIt<PageManager>().init();
-    final queueLength = audioHandler.queue.value.length;
-    print(queueLength);
-    for (int i = 1; i <= queueLength; i++) {
-      audioHandler.removeQueueItemAt(queueLength - i);
-    }
+    deletedQueueItems();
+  }
 
+  deletedQueueItems() {
+    final queueLength = audioHandler.queue.value.length;
+    for (int i = 1; i < queueLength; i++) {
+      audioHandler.removeQueueItemAt(queueLength - (i + 1));
+    }
   }
 
   @override
@@ -333,12 +333,12 @@ class PlayListButton extends StatelessWidget {
     return IconButton(
       icon: const Icon(Icons.playlist_play),
       onPressed: () {
-        Navigator.push(
+        /* Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => const PlaylistSongScreen(),
           ),
-        );
+        );*/
       },
     );
   }
