@@ -11,13 +11,9 @@ import 'notifiers/repeat_button_notifier.dart';
 import 'page_manager.dart';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 
-
 class PlaySongScreen extends StatefulWidget {
-
-
   const PlaySongScreen({
     super.key,
-
   });
 
   @override
@@ -25,23 +21,18 @@ class PlaySongScreen extends StatefulWidget {
 }
 
 class _PlaySongScreenState extends State<PlaySongScreen> {
-  final _audioHandler = getIt<AudioHandler>();
-
-
+  final audioHandler = getIt<AudioHandler>();
   @override
   void initState() {
     super.initState();
-
-
-    final queueLength = _audioHandler.queue.value.length;
-    for (int i = 1; i <= queueLength; i++) {
-      _audioHandler.removeQueueItemAt(queueLength - i);
-    }
     getIt<PageManager>().init();
+    final queueLength = audioHandler.queue.value.length;
+    print(queueLength);
+    for (int i = 1; i <= queueLength; i++) {
+      audioHandler.removeQueueItemAt(queueLength - i);
+    }
 
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -59,24 +50,20 @@ class _PlaySongScreenState extends State<PlaySongScreen> {
           },
         ),
       ),
-      body:  Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                children: const [
-                  CurrentSongTitle(),
-                  Playlist(),
-                  AudioProgressBar(),
-                  AudioControlButtons(),
-                ],
-              ),
-            ),
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          children: const [
+            CurrentSongTitle(),
+            Playlist(),
+            AudioProgressBar(),
+            AudioControlButtons(),
+          ],
+        ),
+      ),
     );
   }
-
-
 }
-
-
 
 class CurrentSongTitle extends StatelessWidget {
   const CurrentSongTitle({Key? key}) : super(key: key);
@@ -247,7 +234,6 @@ class RewindSongButton extends StatelessWidget {
   }
 }
 
-
 class FastForwardSongButton extends StatelessWidget {
   const FastForwardSongButton({Key? key}) : super(key: key);
 
@@ -265,6 +251,7 @@ class FastForwardSongButton extends StatelessWidget {
     );
   }
 }
+
 class PlayButton extends StatelessWidget {
   const PlayButton({Key? key}) : super(key: key);
 
@@ -299,6 +286,7 @@ class PlayButton extends StatelessWidget {
     );
   }
 }
+
 class NextSongButton extends StatelessWidget {
   const NextSongButton({Key? key}) : super(key: key);
 
@@ -336,15 +324,15 @@ class ShuffleButton extends StatelessWidget {
     );
   }
 }
+
 class PlayListButton extends StatelessWidget {
   const PlayListButton({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-
     return IconButton(
-      icon:  const Icon(Icons.playlist_play),
-      onPressed: (){
+      icon: const Icon(Icons.playlist_play),
+      onPressed: () {
         Navigator.push(
           context,
           MaterialPageRoute(
