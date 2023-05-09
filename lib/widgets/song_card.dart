@@ -95,19 +95,20 @@ class _SongCardState extends State<SongCard> {
 }
 */
 import 'dart:io';
-import 'dart:typed_data';
-import 'package:dio/dio.dart';
+
 import 'package:encrypt/encrypt.dart' as enc;
-import 'package:just_audio/just_audio.dart';
+import 'package:flutter/foundation.dart';
+
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:http/http.dart' as http;
+
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../notifiers/play_button_notifier.dart';
 import '../page_manager.dart';
+import '../play_song_screen.dart';
 import '../services/service_locator.dart';
 
 class SongCard extends StatefulWidget {
@@ -190,63 +191,18 @@ class _SongCardState extends State<SongCard> {
         .toList();
     return mp3Files;
   }
-/*  void downloadAndGetNormalFile() async {
-    if (_isGranted) {
-      Directory? d = await getExternalVisibleDir;
-      await _downloadAndCreate(widget.song['url'], d, '${widget.song['title']}.mp3', );
-      var filePath = await _getNormalFile(d, '${widget.song['title']}.mp3', context);
-      widget.song["url"] = filePath;
 
-      final mediaItem = MediaItem(
-        id: widget.song["id"],
-        title: widget.song["title"],
-        album: widget.song["album"],
-        extras: {'url': widget.song['url']},
-        artUri: Uri.parse(widget.song['artUri']!),
-      );
-
-      // Add media item to audio player queue
-     // audioPlayer.add(mediaItem);
-
-    } else {
-      print('No Permission Granted');
-      requestStoragePermission();
-    }
-  }*/
   void downloadAndGetNormalFile() async {
     if (_isGranted) {
       Directory? d = await getExternalVisibleDir;
       await _downloadAndCreate(
           widget.song['url'], d, '${widget.song['title']}.mp3');
       // This section is not called after _downloadAndCreate method is called
-      /* if (_isDownloading == false) {
-        var filePath = await _getNormalFile(
-            d, '${widget.song['title']}.mp3', context);
-        widget.song["url"] = filePath;
-        *//*filePathListMap[0] = widget.mediaItem;
-        print(filePathListMap);*//*
-        final newMediaItem = MediaItem(
-          id: widget.song["id"],
-          title: widget.song["title"],
-          album: widget.song["album"],
-          extras: {'url': widget.song['url']},
-          artUri: Uri.parse(widget.song['artUri']!),
-        );
-        // final audioSource = AudioSource.file(newMediaItem.extras!['url'] as String,tag: newMediaItem,);
-        *//* final newQueue = List.of(queue.value)..insert(0, newMediaItem);
-        queue.add(newQueue);*//*
-        //audioPlayer.setAudioSource(audioSource);
 
-      *//*  audioHandler.addQueueItem(newMediaItem);
-        final pageManager = getIt<PageManager>();
-        pageManager.play();*//*
-        //_audioHandler.skipToQueueItem(widget.index);
-        //await _audioHandler.stop();
-        //audioPlayer.setFilePath(filePath);
-        //audioPlayer.play();
-      }*/
     } else {
-      print('No Permission Granted');
+      if (kDebugMode) {
+        print('No Permission Granted');
+      }
       requestStoragePermission();
     }
   }
@@ -266,17 +222,16 @@ class _SongCardState extends State<SongCard> {
     _loadTempFiles();
     isFileAlreadyDownloaded = isFileInList('${widget.song['title']}.mp3', mp3Files);
     return InkWell(
-      /* onTap: () async {
-          if (mounted) {
+      onTap: () async {
+      /*    if (mounted) {
             Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => PlaySongScreen(
-                      mediaItem: widget.song, index: widget.index),
+                  builder: (context) => const PlaySongScreen(),
                 ));
-          }
-          //Get.toNamed('/song', arguments: song);
-        },*/
+          }*/
+
+        },
         child: Padding(
           padding: const EdgeInsets.only(bottom: 8.0),
           child: ListTile(
@@ -314,16 +269,15 @@ class _SongCardState extends State<SongCard> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 //const PlayButton(),
-                SizedBox(width: 10,),
+                const SizedBox(width: 10,),
                 (isFileAlreadyDownloaded)
                     ? InkWell(
                   onTap: ()async{
-                    Directory? d = await getExternalVisibleDir;
+                 /*   Directory? d = await getExternalVisibleDir;
                     var filePath = await _getNormalFile(
-                        d, '${widget.song['title']}.mp3', context);
-                    widget.song["url"] = filePath;
-                    /*filePathListMap[0] = widget.mediaItem;
-        print(filePathListMap);*/
+                        d, '${widget.song['title']}.mp3',);
+                    widget.song["url"] = filePath;*/
+
                     final newMediaItem = MediaItem(
                       id: widget.song["id"],
                       title: widget.song["title"],
@@ -331,17 +285,25 @@ class _SongCardState extends State<SongCard> {
                       extras: {'url': widget.song['url']},
                       artUri: Uri.parse(widget.song['artUri']!),
                     );
-                    /*final audioPlayer = new AudioPlayer();
-            audioPlayer.setFilePath(filePath);
-            audioPlayer.play();*/
+
                     audioHandler.addQueueItem(newMediaItem );
-                    //audioHandler.playFromMediaId(newMediaItem.id);
-                    print('********* ${audioHandler.queue.value}');
+
+                    if (kDebugMode) {
+                      print('********* ${audioHandler.queue.value}');
+                    }
+                    if (mounted) {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const PlaySongScreen(),
+                          ));
+                    }
 
                   },
-                  child: Icon(
+                  child: const Icon(
                     Icons.play_circle,
                     color: Colors.deepPurple,
+                    size: 35,
                   ),
                 )
                     : InkWell(
@@ -353,6 +315,7 @@ class _SongCardState extends State<SongCard> {
                   },
                   child: (_isDownloading == true ) ? const Icon(
                     Icons.download,
+                    size: 35,
                     color: Colors.deepPurple,
                   ) :  Stack(
                     alignment: Alignment.center,
@@ -381,70 +344,7 @@ class _SongCardState extends State<SongCard> {
         )
     );
   }
-  /* _downloadAndCreate(String audioUrl, Directory? d, String fileName) async {
-    bool isDownloaded = await checkIfFileExists('${d!.path}/$fileName.aes');
-    if (isDownloaded) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('File already downloaded!!!'),
-          duration: Duration(
-            seconds: 1,
-          ),
-        ));
-      }
-    } else {
-      if (await canLaunchUrl(Uri.parse(audioUrl))) {
-        print('Data downloading...');
-        try {
-          String savePath = '${d.path}/$fileName.aes';
-          var response = await Dio().download(audioUrl, savePath,
-            onReceiveProgress: (received, total) {
-              if (total != -1) {
-                double progress = (received / total * 100);
-                setState(() {
-                  _progressValue = progress; // Update progress value
-                });
-                print('Download progress: ${progress.toStringAsFixed(0)}%');
-              }
-            },
-          );
-          var responseBodyBytes = await response.data.bytes;
-          var encResult = _encryptData(responseBodyBytes);
-          await _writeData(encResult, '${d.path}/$fileName.aes');
-          print('File Encrypted successfully...');
-        } catch (e) {
-          print('Error downloading file: $e');
-        }
-      } else {
-        print('Can\'t launch url');
-      }
-    }
-  }*/
 
-/*
-  _downloadAndCreate(String audioUrl, Directory? d, String fileName) async {
-    bool isDownloaded = await checkIfFileExists('${d!.path}/$fileName.aes');
-    if (isDownloaded) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('File already downloaded!!!'),
-          duration: Duration(
-            seconds: 1,
-          ),
-        ));
-      }
-    } else {
-      if (await canLaunchUrl(Uri.parse(audioUrl))) {
-        print('Data downloading...');
-        var resp = await http.get(Uri.parse(audioUrl),);
-        var encResult = _encryptData(resp.bodyBytes);
-        String p = await _writeData(encResult, '${d.path}/$fileName.aes');
-        print('File Encrypted successfully...$p');
-      } else {
-        print('Can\'t launch url');
-      }
-    }
-  }*/
   Future<void> _downloadAndCreate(String audioUrl, Directory? d, String fileName) async {
     bool isDownloaded = await checkIfFileExists('${d!.path}/$fileName.aes');
     if (isDownloaded) {
@@ -458,7 +358,9 @@ class _SongCardState extends State<SongCard> {
       }
     } else {
       if (await canLaunchUrl(Uri.parse(audioUrl))) {
-        print('Data downloading...');
+        if (kDebugMode) {
+          print('Data downloading...');
+        }
         var request = await HttpClient().getUrl(Uri.parse(audioUrl));
         var response = await request.close();
         var length = response.contentLength;
@@ -469,23 +371,24 @@ class _SongCardState extends State<SongCard> {
               (List<int> newBytes) {
             bytes.addAll(newBytes);
             received += newBytes.length;
-            if (length != null) {
-              double progress = received / length;
-              setState(() {
-                _progressValue = progress;
-              });
+            double progress = received / length;
+            setState(() {
+              _progressValue = progress;
+            });
+            if (kDebugMode) {
               print('Download progress: ${(progress * 100).toStringAsFixed(0)}%');
             }
           },
           onDone: () async {
             var encResult = _encryptData(Uint8List.fromList(bytes));
             String p = await _writeData(encResult, '${d.path}/$fileName.aes');
-            print('File Encrypted successfully...$p');
+            if (kDebugMode) {
+              print('File Encrypted successfully...$p');
+            }
             var filePath = await _getNormalFile(
-                d, '${widget.song['title']}.mp3', context);
+                d, '${widget.song['title']}.mp3',);
             widget.song["url"] = filePath;
-            /*filePathListMap[0] = widget.mediaItem;
-        print(filePathListMap);*/
+
             final newMediaItem = MediaItem(
               id: widget.song["id"],
               title: widget.song["title"],
@@ -493,40 +396,50 @@ class _SongCardState extends State<SongCard> {
               extras: {'url': widget.song['url']},
               artUri: Uri.parse(widget.song['artUri']!),
             );
-            // final audioSource = AudioSource.file(newMediaItem.extras!['url'] as String,tag: newMediaItem,);
-            /* final newQueue = List.of(queue.value)..insert(0, newMediaItem);
-        queue.add(newQueue);*/
-            //audioPlayer.setAudioSource(audioSource);
 
             audioHandler.playMediaItem(newMediaItem);
-
+            if (mounted) {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const PlaySongScreen(),
+                  ));
+            }
           },
           onError: (e) {
-            print('Error downloading file: $e');
+            if (kDebugMode) {
+              print('Error downloading file: $e');
+            }
           },
           cancelOnError: true,
         );
       } else {
-        print('Can\'t launch url');
+        if (kDebugMode) {
+          print('Can\'t launch url');
+        }
       }
     }
   }
 
 
-  Future<String> _getNormalFile(Directory? d, String fileName, BuildContext context) async {
+  Future<String> _getNormalFile(Directory? d, String fileName,) async {
     try {
       Uint8List encData = await _readData('${d!.path}/$fileName.aes');
       var plainData = await _decryptData(encData);
       var tempFile = await _createTempFile(fileName);
       tempFile.writeAsBytesSync(plainData);
-      /* final audioPlayer = AudioPlayer();
-      audioPlayer.setFilePath(tempFile.path);*/
-      //widget.audioPlayer.play();
-      print('TempFile : ${tempFile.path}');
-      print('File Decrypted Successfully... ');
+
+      if (kDebugMode) {
+        print('TempFile : ${tempFile.path}');
+      }
+      if (kDebugMode) {
+        print('File Decrypted Successfully... ');
+      }
       return tempFile.path;
     } catch (e) {
-      print('Error : ${e.toString()}');
+      if (kDebugMode) {
+        print('Error : ${e.toString()}');
+      }
       return '';
     }
   }
@@ -537,7 +450,9 @@ class _SongCardState extends State<SongCard> {
   }
 
   _encryptData(Uint8List plainString) {
-    print('Encrypting File...');
+    if (kDebugMode) {
+      print('Encrypting File...');
+    }
     final encrypted =
     MyEncrypt.myEncrypter.encryptBytes(plainString, iv: MyEncrypt.myIv);
 
@@ -545,27 +460,32 @@ class _SongCardState extends State<SongCard> {
   }
 
   _writeData(encResult, String fileNamedWithPath) async {
-    print('Writting data...');
+    if (kDebugMode) {
+      print('Writing data...');
+    }
     File f = File(fileNamedWithPath);
     await f.writeAsBytes(encResult);
     return f.absolute.toString();
   }
 
   _readData(String fileNamedWithPath) async {
-    print('Reading data...');
+    if (kDebugMode) {
+      print('Reading data...');
+    }
     File f = File(fileNamedWithPath);
     return await f.readAsBytes();
   }
 
   _decryptData(Uint8List encData) {
-    print('File decryption in progress...');
+    if (kDebugMode) {
+      print('File decryption in progress...');
+    }
     enc.Encrypted en = enc.Encrypted(encData);
     return MyEncrypt.myEncrypter.decryptBytes(en, iv: MyEncrypt.myIv);
   }
 
   Future<File> _createTempFile(String fileName) async {
     final directory = await getTemporaryDirectory();
-    //final tempFileName = fileName;
     final tempFilePath = '${directory.path}/$fileName';
     return File(tempFilePath);
   }
