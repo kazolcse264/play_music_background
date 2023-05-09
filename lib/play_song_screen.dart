@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:permission_handler/permission_handler.dart';
+import 'package:play_music_background/playlist_song_screen.dart';
 
 import 'package:play_music_background/services/service_locator.dart';
 import 'notifiers/play_button_notifier.dart';
@@ -352,10 +353,13 @@ class AudioControlButtons extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: const [
           RepeatButton(),
-          PreviousSongButton(),
+          //PreviousSongButton(),
+          RewindSongButton(),
           PlayButton(),
-          NextSongButton(),
-          ShuffleButton(),
+          FastForwardSongButton(),
+          //NextSongButton(),
+          //ShuffleButton(),
+          PlayListButton(),
         ],
       ),
     );
@@ -410,6 +414,42 @@ class PreviousSongButton extends StatelessWidget {
   }
 }
 
+class RewindSongButton extends StatelessWidget {
+  const RewindSongButton({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final pageManager = getIt<PageManager>();
+    return ValueListenableBuilder<bool>(
+      valueListenable: pageManager.rewindSongNotifier,
+      builder: (_, isFirst, __) {
+        return IconButton(
+          icon: const Icon(Icons.fast_rewind),
+          onPressed: pageManager.rewind,
+        );
+      },
+    );
+  }
+}
+
+
+class FastForwardSongButton extends StatelessWidget {
+  const FastForwardSongButton({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final pageManager = getIt<PageManager>();
+    return ValueListenableBuilder<bool>(
+      valueListenable: pageManager.fastForwardSongNotifier,
+      builder: (_, isFirst, __) {
+        return IconButton(
+          icon: const Icon(Icons.fast_forward),
+          onPressed: pageManager.fastForward,
+        );
+      },
+    );
+  }
+}
 class PlayButton extends StatelessWidget {
   const PlayButton({Key? key}) : super(key: key);
 
@@ -444,7 +484,6 @@ class PlayButton extends StatelessWidget {
     );
   }
 }
-
 class NextSongButton extends StatelessWidget {
   const NextSongButton({Key? key}) : super(key: key);
 
@@ -477,6 +516,25 @@ class ShuffleButton extends StatelessWidget {
               ? const Icon(Icons.shuffle)
               : const Icon(Icons.shuffle, color: Colors.grey),
           onPressed: pageManager.shuffle,
+        );
+      },
+    );
+  }
+}
+class PlayListButton extends StatelessWidget {
+  const PlayListButton({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final pageManager = getIt<PageManager>();
+    return IconButton(
+      icon:  const Icon(Icons.playlist_play),
+      onPressed: (){
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const PlaylistSongScreen(),
+          ),
         );
       },
     );

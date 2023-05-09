@@ -10,12 +10,12 @@ class PageManager {
   // Listeners: Updates going to the UI
   final currentSongTitleNotifier = ValueNotifier<String>('');
   final playlistNotifier = ValueNotifier<List<String>>([]);
-
-  final fileListNotifier = ValueNotifier<List<Map<String, dynamic>>>([{}]);
-
+ // final playlistArtUriNotifier = ValueNotifier<List<Uri?>>([]);
   final progressNotifier = ProgressNotifier();
   final repeatButtonNotifier = RepeatButtonNotifier();
   final isFirstSongNotifier = ValueNotifier<bool>(true);
+  final rewindSongNotifier = ValueNotifier<bool>(true);
+  final fastForwardSongNotifier = ValueNotifier<bool>(true);
   final playButtonNotifier = PlayButtonNotifier();
   final isLastSongNotifier = ValueNotifier<bool>(true);
   final isShuffleModeEnabledNotifier = ValueNotifier<bool>(false);
@@ -26,6 +26,7 @@ class PageManager {
   void init() async {
     await _loadPlaylist();
     _listenToChangesInPlaylist();
+   // _listenToChangesInPlaylistArtUri();
     _listenToPlaybackState();
     _listenToCurrentPosition();
     _listenToBufferedPosition();
@@ -60,9 +61,22 @@ class PageManager {
         playlistNotifier.value = newList;
       }
       _updateSkipButtons();
+      _updateRewindAndFastForwardButton();
     });
   }
-
+/*  void _listenToChangesInPlaylistArtUri() {
+    _audioHandler.queue.listen((playlist) {
+      if (playlist.isEmpty) {
+        playlistArtUriNotifier.value = [];
+        currentSongTitleNotifier.value = '';
+      } else {
+        final newList = playlist.map((item) => item.artUri).toList();
+        playlistArtUriNotifier.value = newList;
+      }
+      _updateSkipButtons();
+      _updateRewindAndFastForwardButton();
+    });
+  }*/
   void _listenToPlaybackState() {
     _audioHandler.playbackState.listen((playbackState) {
       final isPlaying = playbackState.playing;
@@ -118,7 +132,21 @@ class PageManager {
     _audioHandler.mediaItem.listen((mediaItem) {
       currentSongTitleNotifier.value = mediaItem?.title ?? '';
       _updateSkipButtons();
+      _updateRewindAndFastForwardButton();
     });
+  }
+  void _updateRewindAndFastForwardButton() {
+    final currentPosition = _audioHandler.playbackState.value.position;
+    final duration = _audioHandler.mediaItem.value?.duration;
+
+    if (duration != null) {
+      fastForwardSongNotifier.value =
+          currentPosition < duration - const Duration(seconds: 5);
+      rewindSongNotifier.value = currentPosition > const Duration(seconds: 5);
+    } else {
+      fastForwardSongNotifier.value = false;
+      rewindSongNotifier.value = false;
+    }
   }
 
   void _updateSkipButtons() {
@@ -146,6 +174,8 @@ class PageManager {
   void previous() => _audioHandler.skipToPrevious();
 
   void next() => _audioHandler.skipToNext();
+  void rewind() => _audioHandler.rewind();
+  void fastForward() => _audioHandler.fastForward();
 
   void repeat() {
     repeatButtonNotifier.nextState();
