@@ -9,8 +9,11 @@ import 'page_manager.dart';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 
 class PlaySongScreen extends StatefulWidget {
+  final Map<String, dynamic> song;
+
   const PlaySongScreen({
     super.key,
+    required this.song,
   });
 
   @override
@@ -37,7 +40,7 @@ class _PlaySongScreenState extends State<PlaySongScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      /*appBar: AppBar(
         title: const Text('Playing Screen'),
         automaticallyImplyLeading: false,
         leading: IconButton(
@@ -59,6 +62,112 @@ class _PlaySongScreenState extends State<PlaySongScreen> {
             AudioProgressBar(),
             AudioControlButtons(),
           ],
+        ),
+      ),*/
+      appBar: AppBar(
+        centerTitle: true,
+        title: Text(
+          'Playing Screen',
+          style: Theme.of(context).textTheme.headlineSmall!.copyWith(
+                color: Colors.blue,
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+        automaticallyImplyLeading: false,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back,color: Colors.blue,),
+          onPressed: () {
+            Navigator.pop(context);
+            if (kDebugMode) {
+              print('Back to previous screen');
+            }
+          },
+        ),
+      ),
+      //extendBodyBehindAppBar: true,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.network(
+            widget.song['artUri'],
+            fit: BoxFit.cover,
+          ),
+          const _BackgroundFilter(),
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 20.0,
+              vertical: 50.0,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.song['title'],
+                  style: Theme.of(context).textTheme.headlineSmall!.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  widget.song['album'],
+                  maxLines: 2,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall!
+                      .copyWith(color: Colors.white),
+                ),
+                const SizedBox(height: 30),
+                //CurrentSongTitle(),
+                //Playlist(),
+                const AudioProgressBar(),
+                const AudioControlButtons(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BackgroundFilter extends StatelessWidget {
+  const _BackgroundFilter({
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return ShaderMask(
+      shaderCallback: (rect) {
+        return LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.white,
+              Colors.white.withOpacity(0.5),
+              Colors.white.withOpacity(0.0),
+            ],
+            stops: const [
+              0.0,
+              0.4,
+              0.6
+            ]).createShader(rect);
+      },
+      blendMode: BlendMode.dstOut,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.deepPurple.shade200,
+              Colors.deepPurple.shade800,
+            ],
+          ),
         ),
       ),
     );
@@ -138,6 +247,10 @@ class AudioProgressBar extends StatelessWidget {
           buffered: value.buffered,
           total: value.total,
           onSeek: pageManager.seek,
+          progressBarColor: Colors.white,
+          thumbColor: Colors.white,
+          baseBarColor: Colors.grey,
+          bufferedBarColor: Colors.white38,
         );
       },
     );
@@ -180,13 +293,13 @@ class RepeatButton extends StatelessWidget {
         Icon icon;
         switch (value) {
           case RepeatState.off:
-            icon = const Icon(Icons.repeat, color: Colors.grey);
+            icon = const Icon(Icons.repeat, color: Colors.white);
             break;
           case RepeatState.repeatSong:
-            icon = const Icon(Icons.repeat_one);
+            icon = const Icon(Icons.repeat_one, color: Colors.grey);
             break;
           case RepeatState.repeatPlaylist:
-            icon = const Icon(Icons.repeat);
+            icon = const Icon(Icons.repeat, color: Colors.blueGrey);
             break;
         }
         return IconButton(
@@ -208,7 +321,7 @@ class PreviousSongButton extends StatelessWidget {
       valueListenable: pageManager.isFirstSongNotifier,
       builder: (_, isFirst, __) {
         return IconButton(
-          icon: const Icon(Icons.skip_previous),
+          icon: const Icon(Icons.skip_previous, color: Colors.white),
           onPressed: (isFirst) ? null : pageManager.previous,
         );
       },
@@ -226,7 +339,7 @@ class RewindSongButton extends StatelessWidget {
       valueListenable: pageManager.rewindSongNotifier,
       builder: (_, isFirst, __) {
         return IconButton(
-          icon: const Icon(Icons.fast_rewind),
+          icon: const Icon(Icons.fast_rewind, color: Colors.white),
           onPressed: pageManager.rewind,
         );
       },
@@ -244,7 +357,7 @@ class FastForwardSongButton extends StatelessWidget {
       valueListenable: pageManager.fastForwardSongNotifier,
       builder: (_, isFirst, __) {
         return IconButton(
-          icon: const Icon(Icons.fast_forward),
+          icon: const Icon(Icons.fast_forward, color: Colors.white),
           onPressed: pageManager.fastForward,
         );
       },
@@ -267,17 +380,19 @@ class PlayButton extends StatelessWidget {
               margin: const EdgeInsets.all(8.0),
               width: 32.0,
               height: 32.0,
-              child: const CircularProgressIndicator(),
+              child: const CircularProgressIndicator(
+                color: Colors.white,
+              ),
             );
           case ButtonState.paused:
             return IconButton(
-              icon: const Icon(Icons.play_arrow),
+              icon: const Icon(Icons.play_arrow, color: Colors.white),
               iconSize: 32.0,
               onPressed: pageManager.play,
             );
           case ButtonState.playing:
             return IconButton(
-              icon: const Icon(Icons.pause),
+              icon: const Icon(Icons.pause, color: Colors.white),
               iconSize: 32.0,
               onPressed: pageManager.pause,
             );
@@ -297,7 +412,7 @@ class NextSongButton extends StatelessWidget {
       valueListenable: pageManager.isLastSongNotifier,
       builder: (_, isLast, __) {
         return IconButton(
-          icon: const Icon(Icons.skip_next),
+          icon: const Icon(Icons.skip_next, color: Colors.white),
           onPressed: (isLast) ? null : pageManager.next,
         );
       },
@@ -316,7 +431,7 @@ class ShuffleButton extends StatelessWidget {
       builder: (context, isEnabled, child) {
         return IconButton(
           icon: (isEnabled)
-              ? const Icon(Icons.shuffle)
+              ? const Icon(Icons.shuffle, color: Colors.white)
               : const Icon(Icons.shuffle, color: Colors.grey),
           onPressed: pageManager.shuffle,
         );
@@ -331,7 +446,7 @@ class PlayListButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IconButton(
-      icon: const Icon(Icons.playlist_play),
+      icon: const Icon(Icons.playlist_play, color: Colors.white),
       onPressed: () {
         /* Navigator.push(
           context,

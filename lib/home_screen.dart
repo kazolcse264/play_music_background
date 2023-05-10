@@ -1,7 +1,5 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:play_music_background/playlist_song_screen.dart';
 import 'package:play_music_background/widgets/song_card.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -35,7 +33,13 @@ class _HomeScreenState extends State<HomeScreen> {
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(
-          actions: [
+          title:  Text('Trending Music List', style: Theme.of(context).textTheme.headlineSmall!.copyWith(
+            color: Colors.blue,
+            fontWeight: FontWeight.bold,
+          ),),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+         /* actions: [
             TextButton(
               onPressed: () {
                 Navigator.push(
@@ -50,14 +54,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Text(
                   'Go to playlist',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: Colors.blue,
                     fontWeight: FontWeight.bold,
                     fontSize: 18,
                   ),
                 ),
               ),
             ),
-          ],
+          ],*/
+          centerTitle: true,
         ),
         body: SingleChildScrollView(
           child: Column(
@@ -84,15 +89,10 @@ class _TrendingMusic extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(
         left: 20.0,
-        top: 10.0,
         right: 20.0,
       ),
       child: Column(
         children: [
-           Padding(
-            padding: const EdgeInsets.only(bottom: 10.0),
-            child: Text('Trending Music',style: Theme.of(context).textTheme.headlineSmall,),
-          ),
           ListView.builder(
             physics: const NeverScrollableScrollPhysics(),
             shrinkWrap: true,

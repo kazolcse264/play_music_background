@@ -1,99 +1,4 @@
-/*
-import 'package:flutter/material.dart';
-import '../play_song_screen.dart';
 
-class SongCard extends StatefulWidget {
-  const SongCard({
-    Key? key,
-    required this.song,
-    required this.index,
-  }) : super(key: key);
-
-  final Map<String, dynamic> song;
-  final int index;
-
-  @override
-  State<SongCard> createState() => _SongCardState();
-}
-
-class _SongCardState extends State<SongCard> {
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () async {
-        if (mounted) {
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => PlaySongScreen(
-                  mediaItem: widget.song,
-                ),
-              ));
-        }
-      },
-      child: Container(
-        margin: const EdgeInsets.only(right: 10),
-        child: Stack(
-          alignment: Alignment.bottomCenter,
-          children: [
-            Container(
-              width: MediaQuery.of(context).size.width * 0.45,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(15.0),
-                image: DecorationImage(
-                  image: NetworkImage(
-                    widget.song['artUri'],
-                  ),
-                  fit: BoxFit.fitWidth,
-                ),
-              ),
-            ),
-            Container(
-              height: 50,
-              width: MediaQuery.of(context).size.width * 0.37,
-              //margin: const EdgeInsets.only(bottom: 10),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(15.0),
-                color: Colors.white.withOpacity(0.8),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        widget.song['title'],
-                        style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-                              color: Colors.deepPurple,
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                      Text(
-                        widget.song['album'],
-                        style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                              color: Colors.grey,
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                    ],
-                  ),
-                  const Icon(
-                    Icons.play_circle,
-                    color: Colors.deepPurple,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-*/
 import 'dart:io';
 
 import 'package:encrypt/encrypt.dart' as enc;
@@ -169,7 +74,8 @@ class _SongCardState extends State<SongCard> {
   }
   @override
   void dispose() {
-    super.dispose();audioHandler.stop();
+    super.dispose();
+    audioHandler.stop();
     audioHandler.customAction('dispose');
   }
 
@@ -221,120 +127,112 @@ class _SongCardState extends State<SongCard> {
   Widget build(BuildContext context) {
     _loadTempFiles();
     isFileAlreadyDownloaded = isFileInList('${widget.song['title']}.mp3', mp3Files);
-    return InkWell(
-      onTap: () async {
-      /*    if (mounted) {
-            Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const PlaySongScreen(),
-                ));
-          }*/
-
-        },
-        child: Padding(
-          padding: const EdgeInsets.only(bottom: 8.0),
-          child: ListTile(
-            tileColor: Colors.white,
-            leading: Container(
-              height: 60,
-              width: 60,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(30.0),
-                image: DecorationImage(
-                  image: NetworkImage(
-                    widget.song['artUri'],
-                  ),
-                  fit: BoxFit.fitWidth,
-                ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: ListTile(
+        tileColor: Colors.white,
+        leading: Container(
+          height: 60,
+          width: 60,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(30.0),
+            image: DecorationImage(
+              image: NetworkImage(
+                widget.song['artUri'],
               ),
+              fit: BoxFit.fitWidth,
             ),
-            title: Text(
-              widget.song['title'],
-              style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-                color: Colors.deepPurple,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            subtitle: Text(
-              widget.song['album'],
-              style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                color: Colors.grey,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            trailing:
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                //const PlayButton(),
-                const SizedBox(width: 10,),
-                (isFileAlreadyDownloaded)
-                    ? InkWell(
-                  onTap: ()async{
-                    final newMediaItem = MediaItem(
-                      id: widget.song["id"],
-                      title: widget.song["title"],
-                      album: widget.song["album"],
-                      extras: {'url': widget.song['url']},
-                      artUri: Uri.parse(widget.song['artUri']!),
-                    );
-
-                    final pageManager = getIt<PageManager>();
-                    audioHandler.addQueueItem(newMediaItem);
-                    pageManager.play();
-                    if (mounted) {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const PlaySongScreen(),
-                          ));
-                    }
-
-                  },
-                  child: const Icon(
-                    Icons.play_circle,
-                    color: Colors.deepPurple,
-                    size: 35,
-                  ),
-                )
-                    : InkWell(
-                  onTap: (){
-                    setState(() {
-                      _isDownloading = false;
-                    });
-                    downloadAndGetNormalFile();
-                  },
-                  child: (_isDownloading == true ) ? const Icon(
-                    Icons.download,
-                    size: 35,
-                    color: Colors.deepPurple,
-                  ) :  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      CircularProgressIndicator(
-                        value: _progressValue,
-                        strokeWidth: 5,
-                        backgroundColor: Colors.grey[300],
-                        valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
-                      ),
-                      Text(
-                        '${(_progressValue * 100).toStringAsFixed(0)}%',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  )
-                  ,
-                ),
-              ],
-            ),
-
           ),
-        )
+        ),
+        title: Text(
+          widget.song['title'],
+          style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+            color: Colors.deepPurple,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        subtitle: Text(
+          widget.song['album'],
+          style: Theme.of(context).textTheme.bodySmall!.copyWith(
+            color: Colors.grey,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        trailing:
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(width: 10,),
+            (isFileAlreadyDownloaded)
+                ? InkWell(
+              onTap: ()async{
+                final newMediaItem = MediaItem(
+                  id: widget.song["id"],
+                  title: widget.song["title"],
+                  album: widget.song["album"],
+                  extras: {'url': widget.song['url']},
+                  artUri: Uri.parse(widget.song['artUri']!),
+                );
+
+                final pageManager = getIt<PageManager>();
+                audioHandler.addQueueItem(newMediaItem);
+                pageManager.play();
+                if (mounted) {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>  PlaySongScreen(song: widget.song),
+                      ));
+                }
+
+              },
+              child: Container(
+                height: 50,
+                width: 50,
+                color: Colors.white,
+                child: const Icon(
+                  Icons.play_circle,
+                  color: Colors.deepPurple,
+                  size: 35,
+                ),
+              ),
+            )
+                : InkWell(
+              onTap: (){
+                setState(() {
+                  _isDownloading = false;
+                });
+                downloadAndGetNormalFile();
+              },
+              child: (_isDownloading == true ) ? const Icon(
+                Icons.download,
+                size: 35,
+                color: Colors.deepPurple,
+              ) :  Stack(
+                alignment: Alignment.center,
+                children: [
+                  CircularProgressIndicator(
+                    value: _progressValue,
+                    strokeWidth: 5,
+                    backgroundColor: Colors.grey[300],
+                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
+                  ),
+                  Text(
+                    '${(_progressValue * 100).toStringAsFixed(0)}%',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              )
+              ,
+            ),
+          ],
+        ),
+
+      ),
     );
   }
 
@@ -399,7 +297,7 @@ class _SongCardState extends State<SongCard> {
               Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const PlaySongScreen(),
+                    builder: (context) =>  PlaySongScreen(song: widget.song,),
                   ));
             }
           },
