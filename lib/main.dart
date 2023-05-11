@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:play_music_background/home_screen.dart';
+import 'package:play_music_background/providers/music_provider.dart';
+import 'package:provider/provider.dart';
 
 import 'services/service_locator.dart';
 
 void main() async {
   await setupServiceLocator();
-  runApp(const MyApp());
+  runApp(MultiProvider(
+    providers: [
+      ChangeNotifierProvider(create: (_) => MusicProvider()),
+    ],
+    child: const MyApp(),
+  ));
 }
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
