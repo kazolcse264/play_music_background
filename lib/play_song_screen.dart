@@ -448,12 +448,13 @@ class PlayListButton extends StatelessWidget {
     return IconButton(
       icon: const Icon(Icons.playlist_play, color: Colors.white),
       onPressed: () {
-        /* Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const PlaylistSongScreen(),
-          ),
-        );*/
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('File already downloaded!!!'),
+            duration: Duration(
+              seconds: 1,
+            )
+          )
+          );
       },
     );
   }

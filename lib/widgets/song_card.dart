@@ -77,6 +77,7 @@ class _SongCardState extends State<SongCard> {
     super.dispose();
     audioHandler.stop();
     audioHandler.customAction('dispose');
+
   }
 
   Future<void> _loadTempFiles() async {
@@ -103,7 +104,6 @@ class _SongCardState extends State<SongCard> {
       Directory? d = await getExternalVisibleDir;
       await _downloadAndCreate(
           widget.song['url'], d, '${widget.song['title']}.mp3');
-      // This section is not called after _downloadAndCreate method is called
 
     } else {
       if (kDebugMode) {
@@ -122,7 +122,6 @@ class _SongCardState extends State<SongCard> {
     }
     return false;
   }
-
   @override
   Widget build(BuildContext context) {
     _loadTempFiles();
@@ -174,7 +173,6 @@ class _SongCardState extends State<SongCard> {
                   extras: {'url': widget.song['url']},
                   artUri: Uri.parse(widget.song['artUri']!),
                 );
-
                 final pageManager = getIt<PageManager>();
                 audioHandler.addQueueItem(newMediaItem);
                 pageManager.play();
@@ -279,7 +277,6 @@ class _SongCardState extends State<SongCard> {
             var filePath = await _getNormalFile(
                 d, '${widget.song['title']}.mp3',);
             widget.song["url"] = filePath;
-
             final newMediaItem = MediaItem(
               id: widget.song["id"],
               title: widget.song["title"],

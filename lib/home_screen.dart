@@ -99,7 +99,7 @@ class _TrendingMusic extends StatelessWidget {
             scrollDirection: Axis.vertical,
             itemCount: audioList.length,
             itemBuilder: (context, index) {
-              return SongCard(song: audioList[index], index: index);
+              return SongCard(song: audioList[index], index: index,);
             },
           ),
         ],
