@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:play_music_background/providers/music_provider.dart';
 import 'package:play_music_background/widgets/song_card.dart';
@@ -12,26 +11,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
- /* List<dynamic> audioList = [];
+  late MusicProvider musicProvider;
 
-  readAudio() async {
-    await DefaultAssetBundle.of(context)
-        .loadString('json/audio.json')
-        .then((value) {
-      setState(() {
-        audioList = json.decode(value);
-      });
-    });
-  }*/
-late MusicProvider musicProvider;
-/*  @override
-  void initState() {
-    super.initState();
-    musicProvider = Provider.of<MusicProvider>(context);
-    musicProvider.readAudio(context);
-    musicProvider.requestStoragePermission();
-    musicProvider.loadTempFiles();
-  }*/
   @override
   void didChangeDependencies() {
     musicProvider = Provider.of<MusicProvider>(context);
@@ -46,41 +27,23 @@ late MusicProvider musicProvider;
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(
-          title:  Text('Trending Music List', style: Theme.of(context).textTheme.headlineSmall!.copyWith(
-            color: Colors.blue,
-            fontWeight: FontWeight.bold,
-          ),),
+          title: Text(
+            'Trending Music List',
+            style: Theme.of(context).textTheme.headlineSmall!.copyWith(
+                  color: Colors.blue,
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
           backgroundColor: Colors.transparent,
           elevation: 0,
-         /* actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const PlaylistSongScreen(),
-                  ),
-                );
-              },
-              child: const Padding(
-                padding: EdgeInsets.only(right: 10.0),
-                child: Text(
-                  'Go to playlist',
-                  style: TextStyle(
-                    color: Colors.blue,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
-                ),
-              ),
-            ),
-          ],*/
           centerTitle: true,
         ),
         body: SingleChildScrollView(
           child: Column(
             children: [
-              _TrendingMusic(audioList: musicProvider.audioList, musicProvider: musicProvider),
+              _TrendingMusic(
+                  audioList: musicProvider.audioList,
+                  musicProvider: musicProvider),
             ],
           ),
         ),
@@ -114,9 +77,12 @@ class _TrendingMusic extends StatelessWidget {
             scrollDirection: Axis.vertical,
             itemCount: audioList.length,
             itemBuilder: (context, index) {
-            final  isFileLocal = musicProvider.isFileInList(
+              final isFileLocal = musicProvider.isFileInList(
                   '${audioList[index]['title']}.mp3', musicProvider.mp3Files);
-              return SongCard(song: audioList[index], isFileLocal : isFileLocal,index : index);
+              return SongCard(
+                  song: audioList[index],
+                  isFileLocal: isFileLocal,
+                  index: index);
             },
           ),
         ],

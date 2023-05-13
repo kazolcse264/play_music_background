@@ -2,6 +2,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:play_music_background/services/service_locator.dart';
+import 'package:play_music_background/utils/helper_functions.dart';
 import 'notifiers/play_button_notifier.dart';
 import 'notifiers/progress_notifier.dart';
 import 'notifiers/repeat_button_notifier.dart';
@@ -251,6 +252,8 @@ class AudioProgressBar extends StatelessWidget {
           thumbColor: Colors.white,
           baseBarColor: Colors.grey,
           bufferedBarColor: Colors.white38,
+          timeLabelTextStyle: const TextStyle(color: Colors.white,),
+          timeLabelPadding: 5.0,
         );
       },
     );
@@ -448,13 +451,7 @@ class PlayListButton extends StatelessWidget {
     return IconButton(
       icon: const Icon(Icons.playlist_play, color: Colors.white),
       onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('File already downloaded!!!'),
-            duration: Duration(
-              seconds: 1,
-            )
-          )
-          );
+          showMsg(context, 'This section is not completed yet');
       },
     );
   }

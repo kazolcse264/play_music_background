@@ -123,21 +123,14 @@ class _SongCardState extends State<SongCard> {
                         onTap: isDownloadingCompleted
                             ? null
                             : () async {
-                          setState(() {
-                            isDownloadingCompleted = true;
-                          });
-                          Directory? d = await musicProvider.getExternalVisibleDir;
-                          await musicProvider.downloadAndCreate(widget.song, d, audioHandler, widget.index);
-                          if (mounted) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => PlaySongScreen(
-                                  song: widget.song,
-                                ),
-                              ),
-                            );
-                          }
+                                setState(() {
+                                  isDownloadingCompleted = true;
+                                });
+                                Directory? d =
+                                    await musicProvider.getExternalVisibleDir;
+                                await musicProvider.downloadAndCreate(
+                                    widget.song, d, audioHandler, widget.index);
+
                                 // Future.delayed(const Duration(seconds: 2));
                                 /*if(mounted){
                      Navigator.push(
