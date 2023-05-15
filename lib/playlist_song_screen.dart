@@ -112,6 +112,7 @@ class Playlist extends StatelessWidget {
     );
   }
 }
+
 //For showing Image  in the Playlist
 /*class Playlist extends StatelessWidget {
   const Playlist({Key? key}) : super(key: key);
@@ -181,7 +182,7 @@ class AudioControlButtons extends StatelessWidget {
         children: const [
           RepeatButton(),
           PreviousSongButton(),
-         // RewindSongButton(),
+          // RewindSongButton(),
           PlayButton(),
           //FastForwardSongButton(),
           NextSongButton(),
@@ -239,6 +240,7 @@ class PreviousSongButton extends StatelessWidget {
     );
   }
 }
+
 class RewindSongButton extends StatelessWidget {
   const RewindSongButton({Key? key}) : super(key: key);
 
@@ -257,7 +259,6 @@ class RewindSongButton extends StatelessWidget {
   }
 }
 
-
 class FastForwardSongButton extends StatelessWidget {
   const FastForwardSongButton({Key? key}) : super(key: key);
 
@@ -275,6 +276,7 @@ class FastForwardSongButton extends StatelessWidget {
     );
   }
 }
+
 class PlayButton extends StatelessWidget {
   const PlayButton({Key? key}) : super(key: key);
 

@@ -10,7 +10,7 @@ class PageManager {
   // Listeners: Updates going to the UI
   final currentSongTitleNotifier = ValueNotifier<String>('');
   final playlistNotifier = ValueNotifier<List<String>>([]);
- // final playlistArtUriNotifier = ValueNotifier<List<Uri?>>([]);
+
   final progressNotifier = ProgressNotifier();
   final repeatButtonNotifier = RepeatButtonNotifier();
   final isFirstSongNotifier = ValueNotifier<bool>(true);
@@ -26,7 +26,6 @@ class PageManager {
   void init() async {
     await _loadPlaylist();
     _listenToChangesInPlaylist();
-   // _listenToChangesInPlaylistArtUri();
     _listenToPlaybackState();
     _listenToCurrentPosition();
     _listenToBufferedPosition();
@@ -64,19 +63,7 @@ class PageManager {
       _updateRewindAndFastForwardButton();
     });
   }
-/*  void _listenToChangesInPlaylistArtUri() {
-    _audioHandler.queue.listen((playlist) {
-      if (playlist.isEmpty) {
-        playlistArtUriNotifier.value = [];
-        currentSongTitleNotifier.value = '';
-      } else {
-        final newList = playlist.map((item) => item.artUri).toList();
-        playlistArtUriNotifier.value = newList;
-      }
-      _updateSkipButtons();
-      _updateRewindAndFastForwardButton();
-    });
-  }*/
+
   void _listenToPlaybackState() {
     _audioHandler.playbackState.listen((playbackState) {
       final isPlaying = playbackState.playing;
@@ -135,6 +122,7 @@ class PageManager {
       _updateRewindAndFastForwardButton();
     });
   }
+
   void _updateRewindAndFastForwardButton() {
     final currentPosition = _audioHandler.playbackState.value.position;
     final duration = _audioHandler.mediaItem.value?.duration;
@@ -174,7 +162,9 @@ class PageManager {
   void previous() => _audioHandler.skipToPrevious();
 
   void next() => _audioHandler.skipToNext();
+
   void rewind() => _audioHandler.rewind();
+
   void fastForward() => _audioHandler.fastForward();
 
   void repeat() {
@@ -202,6 +192,7 @@ class PageManager {
       _audioHandler.setShuffleMode(AudioServiceShuffleMode.none);
     }
   }
+
   Future<void> add() async {
     final songRepository = getIt<PlaylistRepository>();
     final song = await songRepository.fetchAnotherSong();
@@ -216,11 +207,13 @@ class PageManager {
     );
     _audioHandler.addQueueItem(mediaItem);
   }
+
   void remove() {
     final lastIndex = _audioHandler.queue.value.length - 1;
     if (lastIndex < 0) return;
     _audioHandler.removeQueueItemAt(lastIndex);
   }
+
   void dispose() {
     _audioHandler.customAction('dispose');
     _audioHandler.onTaskRemoved();

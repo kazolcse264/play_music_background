@@ -1,8 +1,10 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:play_music_background/providers/music_provider.dart';
 import 'package:play_music_background/services/service_locator.dart';
 import 'package:play_music_background/utils/helper_functions.dart';
+import 'package:provider/provider.dart';
 import 'notifiers/play_button_notifier.dart';
 import 'notifiers/progress_notifier.dart';
 import 'notifiers/repeat_button_notifier.dart';
@@ -41,30 +43,6 @@ class _PlaySongScreenState extends State<PlaySongScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      /*appBar: AppBar(
-        title: const Text('Playing Screen'),
-        automaticallyImplyLeading: false,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context);
-            if (kDebugMode) {
-              print('Back to previous screen');
-            }
-          },
-        ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          children: const [
-            CurrentSongTitle(),
-            Playlist(),
-            AudioProgressBar(),
-            AudioControlButtons(),
-          ],
-        ),
-      ),*/
       appBar: AppBar(
         centerTitle: true,
         title: Text(
@@ -78,7 +56,10 @@ class _PlaySongScreenState extends State<PlaySongScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back,color: Colors.blue,),
+          icon: const Icon(
+            Icons.arrow_back,
+            color: Colors.blue,
+          ),
           onPressed: () {
             Navigator.pop(context);
             if (kDebugMode) {
@@ -252,7 +233,9 @@ class AudioProgressBar extends StatelessWidget {
           thumbColor: Colors.white,
           baseBarColor: Colors.grey,
           bufferedBarColor: Colors.white38,
-          timeLabelTextStyle: const TextStyle(color: Colors.white,),
+          timeLabelTextStyle: const TextStyle(
+            color: Colors.white,
+          ),
           timeLabelPadding: 5.0,
         );
       },
@@ -448,10 +431,14 @@ class PlayListButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
-      icon: const Icon(Icons.playlist_play, color: Colors.white),
-      onPressed: () {
-          showMsg(context, 'This section is not completed yet');
+    return Consumer<MusicProvider>(
+      builder: (context, musicProvider, child) {
+        return IconButton(
+          icon: const Icon(Icons.playlist_play, color: Colors.white),
+          onPressed: () async {
+            showMsg(context, 'This section is not completed yet');
+          },
+        );
       },
     );
   }

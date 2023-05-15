@@ -10,11 +10,15 @@ import 'package:encrypt/encrypt.dart' as enc;
 import 'package:url_launcher/url_launcher.dart';
 
 class MusicProvider extends ChangeNotifier {
+  String continuousResult = '';
+
   bool isGranted = true;
   double progressValue = 0.0;
   List<File> mp3Files = [];
   Map<String, double> progressValueMap = {};
   List<dynamic> audioList = [];
+  List<MediaItem> mediaItems = [];
+  List<MediaItem> decryptedMediaItems = [];
 
   readAudio(BuildContext context) async {
     await DefaultAssetBundle.of(context)
@@ -82,6 +86,11 @@ class MusicProvider extends ChangeNotifier {
     return mp3Files;
   }
 
+  addDecryptedMediaItems(MediaItem mediaItem) {
+    decryptedMediaItems.add(mediaItem);
+    notifyListeners();
+  }
+
   Future<void> downloadAndCreate(Map<String, dynamic> song, Directory? d,
       AudioHandler audioHandler, int index) async {
     if (await canLaunchUrl(Uri.parse(song['url']))) {
@@ -101,7 +110,6 @@ class MusicProvider extends ChangeNotifier {
           double progress = received / length;
           progressValue = progress;
           progressValueMap['$index'] = progressValue;
-          notifyListeners();
           if (kDebugMode) {
             print('Download progress: ${(progress * 100).toStringAsFixed(0)}%');
           }
@@ -113,7 +121,8 @@ class MusicProvider extends ChangeNotifier {
           if (kDebugMode) {
             print('File Encrypted successfully...$p');
           }
-          var filePath = await _getNormalFile(d, '${song['title']}.mp3');
+          continuousResult = 'File Encrypted successfully...';
+          var filePath = await getNormalFile(d, '${song['title']}.mp3');
           song["url"] = filePath;
           final newMediaItem = MediaItem(
             id: song["id"],
@@ -123,9 +132,6 @@ class MusicProvider extends ChangeNotifier {
             artUri: Uri.parse(song['artUri']!),
           );
           audioHandler.addQueueItem(newMediaItem);
-          if (kDebugMode) {
-            print('********* ${audioHandler.queue.value}');
-          }
         },
         onError: (e) {
           if (kDebugMode) {
@@ -142,7 +148,7 @@ class MusicProvider extends ChangeNotifier {
     }
   }
 
-  Future<String> _getNormalFile(
+  Future<String> getNormalFile(
     Directory? d,
     String fileName,
   ) async {
@@ -151,13 +157,11 @@ class MusicProvider extends ChangeNotifier {
       var plainData = await _decryptData(encData);
       var tempFile = await _createTempFile(fileName);
       tempFile.writeAsBytesSync(plainData);
-
-      if (kDebugMode) {
-        print('TempFile : ${tempFile.path}');
-      }
       if (kDebugMode) {
         print('File Decrypted Successfully... ');
       }
+      continuousResult = 'File Decrypted Successfully... ';
+      notifyListeners();
       return tempFile.path;
     } catch (e) {
       if (kDebugMode) {
@@ -176,6 +180,8 @@ class MusicProvider extends ChangeNotifier {
     if (kDebugMode) {
       print('Encrypting File...');
     }
+    continuousResult = 'Encrypting File...';
+    notifyListeners();
     final encrypted =
         MyEncrypt.myEncrypter.encryptBytes(plainString, iv: MyEncrypt.myIv);
 
@@ -186,6 +192,8 @@ class MusicProvider extends ChangeNotifier {
     if (kDebugMode) {
       print('Writing data...');
     }
+    continuousResult = 'Writing data...';
+    notifyListeners();
     File f = File(fileNamedWithPath);
     await f.writeAsBytes(encResult);
     return f.absolute.toString();
@@ -195,6 +203,8 @@ class MusicProvider extends ChangeNotifier {
     if (kDebugMode) {
       print('Reading data...');
     }
+    continuousResult = 'Reading data...';
+    notifyListeners();
     File f = File(fileNamedWithPath);
     return await f.readAsBytes();
   }
@@ -203,6 +213,8 @@ class MusicProvider extends ChangeNotifier {
     if (kDebugMode) {
       print('File decryption in progress...');
     }
+    continuousResult = 'File decryption in progress...';
+    notifyListeners();
     enc.Encrypted en = enc.Encrypted(encData);
     return MyEncrypt.myEncrypter.decryptBytes(en, iv: MyEncrypt.myIv);
   }

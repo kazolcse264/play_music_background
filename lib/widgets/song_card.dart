@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:provider/provider.dart';
 
 import 'package:audio_service/audio_service.dart';
@@ -9,6 +8,7 @@ import '../notifiers/play_button_notifier.dart';
 import '../page_manager.dart';
 import '../play_song_screen.dart';
 import '../providers/music_provider.dart';
+import '../providers/theme_provider.dart';
 import '../services/service_locator.dart';
 
 class SongCard extends StatefulWidget {
@@ -30,15 +30,7 @@ class SongCard extends StatefulWidget {
 class _SongCardState extends State<SongCard> {
   final audioHandler = getIt<AudioHandler>();
   bool isDownloadingCompleted = false;
-
-/*  Future<void> downloadAndGetNormalFile(
-      MusicProvider musicProvider, int index) async {
-    setState(() {
-      isDownloadingCompleted = true;
-    });
-    Directory? d = await musicProvider.getExternalVisibleDir;
-    await musicProvider.downloadAndCreate(widget.song, d, audioHandler, index);
-  }*/
+  bool isDecrypted = false;
 
   @override
   void dispose() {
@@ -48,15 +40,18 @@ class _SongCardState extends State<SongCard> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
       child: ListTile(
-        tileColor: Colors.white,
+        tileColor:
+            themeProvider.isDarkMode ? Colors.grey.shade900 : Colors.white,
         leading: Container(
           height: 60,
           width: 60,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color:
+                themeProvider.isDarkMode ? Colors.grey.shade900 : Colors.white,
             borderRadius: BorderRadius.circular(30.0),
             image: DecorationImage(
               image: NetworkImage(
@@ -69,14 +64,15 @@ class _SongCardState extends State<SongCard> {
         title: Text(
           widget.song['title'],
           style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-                color: Colors.deepPurple,
+                color:
+                    themeProvider.isDarkMode ? Colors.white : Colors.deepPurple,
                 fontWeight: FontWeight.bold,
               ),
         ),
         subtitle: Text(
           widget.song['album'],
           style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                color: Colors.grey,
+                color: themeProvider.isDarkMode ? Colors.white70 : Colors.grey,
                 fontWeight: FontWeight.bold,
               ),
         ),
@@ -91,6 +87,15 @@ class _SongCardState extends State<SongCard> {
                 (widget.isFileLocal)
                     ? InkWell(
                         onTap: () async {
+                          setState(() {
+                            isDecrypted = true;
+                          });
+                          Directory? d =
+                              await musicProvider.getExternalVisibleDir;
+                          var filePath = await musicProvider.getNormalFile(
+                              d, '${widget.song['title']}.mp3');
+                          widget.song["url"] = filePath;
+
                           final newMediaItem = MediaItem(
                             id: widget.song["id"],
                             title: widget.song["title"],
@@ -98,26 +103,38 @@ class _SongCardState extends State<SongCard> {
                             extras: {'url': widget.song['url']},
                             artUri: Uri.parse(widget.song['artUri']!),
                           );
+                          musicProvider.addDecryptedMediaItems(newMediaItem);
                           final pageManager = getIt<PageManager>();
                           audioHandler.addQueueItem(newMediaItem);
                           pageManager.play();
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    PlaySongScreen(song: widget.song),
-                              ));
+                          setState(() {
+                            isDecrypted = false;
+                          });
+                          if (mounted) {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      PlaySongScreen(song: widget.song),
+                                ));
+                          }
                         },
-                        child: Container(
-                          height: 50,
-                          width: 50,
-                          color: Colors.white,
-                          child: const Icon(
-                            Icons.play_circle,
-                            color: Colors.deepPurple,
-                            size: 35,
-                          ),
-                        ),
+                        child: (isDecrypted)
+                            ? Text(musicProvider.continuousResult)
+                            : Container(
+                                height: 50,
+                                width: 50,
+                                color: themeProvider.isDarkMode
+                                    ? Colors.grey.shade900
+                                    : Colors.white,
+                                child: Icon(
+                                  Icons.play_circle,
+                                  color: themeProvider.isDarkMode
+                                      ? Colors.white
+                                      : Colors.grey.shade900,
+                                  size: 35,
+                                ),
+                              ),
                       )
                     : InkWell(
                         onTap: isDownloadingCompleted
@@ -130,53 +147,49 @@ class _SongCardState extends State<SongCard> {
                                     await musicProvider.getExternalVisibleDir;
                                 await musicProvider.downloadAndCreate(
                                     widget.song, d, audioHandler, widget.index);
-
-                                // Future.delayed(const Duration(seconds: 2));
-                                /*if(mounted){
-                     Navigator.push(
-                       context,
-                       MaterialPageRoute(
-                         builder: (context) => PlaySongScreen(
-                           song: widget.song,
-                         ),
-                       ),
-                     );
-                   }*/
                               },
                         child: (isDownloadingCompleted == false)
-                            ? const Icon(
+                            ? Icon(
                                 Icons.download,
                                 size: 35,
-                                color: Colors.deepPurple,
+                                color: themeProvider.isDarkMode
+                                    ? Colors.white
+                                    : Colors.grey.shade900,
                               )
                             : SizedBox(
                                 height: 50,
                                 width: 50,
-                                child: Stack(
-                                  alignment: Alignment.center,
-                                  children: [
-                                    CircularProgressIndicator(
-                                      value: musicProvider
-                                          .progressValueMap['${widget.index}'],
-                                      strokeWidth: 5,
-                                      backgroundColor: Colors.grey[300],
-                                      valueColor:
-                                          const AlwaysStoppedAnimation<Color>(
-                                              Colors.blue),
-                                    ),
-                                    Text(
-                                      musicProvider.progressValueMap[
-                                                  '${widget.index}'] ==
-                                              null
-                                          ? ''
-                                          : '${(musicProvider.progressValueMap['${widget.index}']! * 100).toStringAsFixed(0)}%',
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                                child:
+                                    ('${(musicProvider.progressValueMap['${widget.index}'] ?? 0 * 100).toStringAsFixed(0)}%' ==
+                                            '100%')
+                                        ? Text(musicProvider.continuousResult)
+                                        : Stack(
+                                            alignment: Alignment.center,
+                                            children: [
+                                              CircularProgressIndicator(
+                                                value: musicProvider
+                                                        .progressValueMap[
+                                                    '${widget.index}'],
+                                                strokeWidth: 5,
+                                                backgroundColor:
+                                                    Colors.grey[300],
+                                                valueColor:
+                                                    const AlwaysStoppedAnimation<
+                                                        Color>(Colors.blue),
+                                              ),
+                                              Text(
+                                                musicProvider.progressValueMap[
+                                                            '${widget.index}'] ==
+                                                        null
+                                                    ? ''
+                                                    : '${(musicProvider.progressValueMap['${widget.index}']! * 100).toStringAsFixed(0)}%',
+                                                style: const TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                               ),
                       ),
               ],
