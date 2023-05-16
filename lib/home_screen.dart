@@ -12,19 +12,26 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late MusicProvider musicProvider;
-
+ // late MusicProvider musicProvider;
+@override
+  void initState() {
+  Provider.of<MusicProvider>(context,listen: false).readAudio(context);
+  Provider.of<MusicProvider>(context,listen: false). requestStoragePermission();;
+  Provider.of<MusicProvider>(context,listen: false).loadTempFiles();;
+    super.initState();
+  }
   @override
   void didChangeDependencies() {
-    musicProvider = Provider.of<MusicProvider>(context);
+   /* musicProvider = Provider.of<MusicProvider>(context,listen: false);
     musicProvider.readAudio(context);
     musicProvider.requestStoragePermission();
-    musicProvider.loadTempFiles();
+    musicProvider.loadTempFiles();*/
     super.didChangeDependencies();
   }
 
   @override
   Widget build(BuildContext context) {
+  final musicProvider = Provider.of<MusicProvider>(context);
     return SafeArea(
       child: Scaffold(
         appBar: PreferredSize(

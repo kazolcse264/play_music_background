@@ -41,6 +41,7 @@ class _SongCardState extends State<SongCard> {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
       child: ListTile(
@@ -120,7 +121,16 @@ class _SongCardState extends State<SongCard> {
                           }
                         },
                         child: (isDecrypted)
-                            ? Text(musicProvider.continuousResult)
+                            ? Wrap(
+                              children: const [
+                                Text(
+                                    'Decryption Running...',
+                                    style: TextStyle(
+                                      color: Colors.green,
+                                    ),
+                                  ),
+                              ],
+                            )
                             : Container(
                                 height: 50,
                                 width: 50,
@@ -159,10 +169,63 @@ class _SongCardState extends State<SongCard> {
                             : SizedBox(
                                 height: 50,
                                 width: 50,
-                                child:
-                                    ('${(musicProvider.progressValueMap['${widget.index}'] ?? 0 * 100).toStringAsFixed(0)}%' ==
+                                child: (musicProvider.progressValueMap[
+                                            '${widget.index}'] ==
+                                        null)
+                                    ? CircularProgressIndicator(
+                                        strokeWidth: 5,
+                                        backgroundColor: Colors.grey[300],
+                                        valueColor:
+                                            const AlwaysStoppedAnimation<Color>(
+                                                Colors.blue),
+                                      )
+                                    : ('${(musicProvider.progressValueMap['${widget.index}']! * 100).toStringAsFixed(0)}%' ==
                                             '100%')
-                                        ? Text(musicProvider.continuousResult)
+                                        ? (musicProvider.fileProcessResult ==
+                                                'File Decrypted Successfully...')
+                                            ? InkWell(
+                                                onTap: () {
+                                                  final pageManager =
+                                                      getIt<PageManager>();
+                                                  pageManager.play();
+                                                  if (mounted) {
+                                                    Navigator.push(
+                                                        context,
+                                                        MaterialPageRoute(
+                                                          builder: (context) =>
+                                                              PlaySongScreen(
+                                                                  song: widget
+                                                                      .song),
+                                                        ));
+                                                  }
+                                                },
+                                                child: Container(
+                                                  height: 50,
+                                                  width: 50,
+                                                  color:
+                                                      themeProvider.isDarkMode
+                                                          ? Colors.grey.shade900
+                                                          : Colors.white,
+                                                  child: Icon(
+                                                    Icons.play_circle,
+                                                    color: themeProvider
+                                                            .isDarkMode
+                                                        ? Colors.white
+                                                        : Colors.grey.shade900,
+                                                    size: 35,
+                                                  ),
+                                                ),
+                                              )
+                                            : Wrap(
+                                                children: const [
+                                                  Text(
+                                                    'Encryption-Decryption Running...',
+                                                    style: TextStyle(
+                                                      color: Colors.green,
+                                                    ),
+                                                  ),
+                                                ],
+                                              )
                                         : Stack(
                                             alignment: Alignment.center,
                                             children: [

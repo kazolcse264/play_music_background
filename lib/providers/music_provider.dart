@@ -10,8 +10,7 @@ import 'package:encrypt/encrypt.dart' as enc;
 import 'package:url_launcher/url_launcher.dart';
 
 class MusicProvider extends ChangeNotifier {
-  String continuousResult = '';
-
+  String fileProcessResult = '';
   bool isGranted = true;
   double progressValue = 0.0;
   List<File> mp3Files = [];
@@ -110,6 +109,7 @@ class MusicProvider extends ChangeNotifier {
           double progress = received / length;
           progressValue = progress;
           progressValueMap['$index'] = progressValue;
+          notifyListeners();
           if (kDebugMode) {
             print('Download progress: ${(progress * 100).toStringAsFixed(0)}%');
           }
@@ -121,7 +121,6 @@ class MusicProvider extends ChangeNotifier {
           if (kDebugMode) {
             print('File Encrypted successfully...$p');
           }
-          continuousResult = 'File Encrypted successfully...';
           var filePath = await getNormalFile(d, '${song['title']}.mp3');
           song["url"] = filePath;
           final newMediaItem = MediaItem(
@@ -160,7 +159,7 @@ class MusicProvider extends ChangeNotifier {
       if (kDebugMode) {
         print('File Decrypted Successfully... ');
       }
-      continuousResult = 'File Decrypted Successfully... ';
+      fileProcessResult = 'File Decrypted Successfully...';
       notifyListeners();
       return tempFile.path;
     } catch (e) {
@@ -180,8 +179,7 @@ class MusicProvider extends ChangeNotifier {
     if (kDebugMode) {
       print('Encrypting File...');
     }
-    continuousResult = 'Encrypting File...';
-    notifyListeners();
+
     final encrypted =
         MyEncrypt.myEncrypter.encryptBytes(plainString, iv: MyEncrypt.myIv);
 
@@ -192,8 +190,7 @@ class MusicProvider extends ChangeNotifier {
     if (kDebugMode) {
       print('Writing data...');
     }
-    continuousResult = 'Writing data...';
-    notifyListeners();
+
     File f = File(fileNamedWithPath);
     await f.writeAsBytes(encResult);
     return f.absolute.toString();
@@ -203,8 +200,7 @@ class MusicProvider extends ChangeNotifier {
     if (kDebugMode) {
       print('Reading data...');
     }
-    continuousResult = 'Reading data...';
-    notifyListeners();
+
     File f = File(fileNamedWithPath);
     return await f.readAsBytes();
   }
@@ -213,8 +209,6 @@ class MusicProvider extends ChangeNotifier {
     if (kDebugMode) {
       print('File decryption in progress...');
     }
-    continuousResult = 'File decryption in progress...';
-    notifyListeners();
     enc.Encrypted en = enc.Encrypted(encData);
     return MyEncrypt.myEncrypter.decryptBytes(en, iv: MyEncrypt.myIv);
   }
