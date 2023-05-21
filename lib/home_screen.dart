@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:play_music_background/providers/music_provider.dart';
 import 'package:play_music_background/providers/theme_provider.dart';
@@ -13,25 +15,33 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
  // late MusicProvider musicProvider;
+  List<dynamic> audioList = [];
 @override
   void initState() {
-  Provider.of<MusicProvider>(context,listen: false).readAudio(context);
-  Provider.of<MusicProvider>(context,listen: false). requestStoragePermission();;
-  Provider.of<MusicProvider>(context,listen: false).loadTempFiles();;
+
+  WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+    readAudio();
+  });
+
+  print('init state');
+  //Provider.of<MusicProvider>(context,listen: false).readAudio(context);
+  Provider.of<MusicProvider>(context,listen: false). requestStoragePermission();
+  Provider.of<MusicProvider>(context,listen: false).loadTempFiles();
     super.initState();
   }
-  @override
-  void didChangeDependencies() {
-   /* musicProvider = Provider.of<MusicProvider>(context,listen: false);
-    musicProvider.readAudio(context);
-    musicProvider.requestStoragePermission();
-    musicProvider.loadTempFiles();*/
-    super.didChangeDependencies();
-  }
+readAudio() async {
+  await DefaultAssetBundle.of(context)
+      .loadString('json/audio.json')
+      .then((value) {
+    audioList = json.decode(value);
+    setState(() {
+
+    });
+  });
+}
 
   @override
   Widget build(BuildContext context) {
-  final musicProvider = Provider.of<MusicProvider>(context);
     return SafeArea(
       child: Scaffold(
         appBar: PreferredSize(
@@ -70,10 +80,8 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         body: SingleChildScrollView(
           child: Column(
-            children: [
-              _TrendingMusic(
-                  audioList: musicProvider.audioList,
-                  musicProvider: musicProvider),
+            children:  [
+              _TrendingMusic( audioList: audioList,),
             ],
           ),
         ),
@@ -83,15 +91,11 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _TrendingMusic extends StatelessWidget {
-  const _TrendingMusic({
+   const _TrendingMusic({
     Key? key,
     required this.audioList,
-    required this.musicProvider,
   }) : super(key: key);
-
-  final List<dynamic> audioList;
-  final MusicProvider musicProvider;
-
+ final  List<dynamic> audioList;
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -107,11 +111,10 @@ class _TrendingMusic extends StatelessWidget {
             scrollDirection: Axis.vertical,
             itemCount: audioList.length,
             itemBuilder: (context, index) {
-              final isFileLocal = musicProvider.isFileInList(
-                  '${audioList[index]['title']}.mp3', musicProvider.mp3Files);
+              //print(audioList.length);
               return SongCard(
                   song: audioList[index],
-                  isFileLocal: isFileLocal,
+                  audioList : audioList,
                   index: index);
             },
           ),

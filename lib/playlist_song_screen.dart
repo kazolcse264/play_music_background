@@ -21,7 +21,7 @@ class _PlaylistSongScreenState extends State<PlaylistSongScreen> {
   @override
   void initState() {
     super.initState();
-    getIt<PageManager>().init();
+   // getIt<PageManager>().init();
   }
 
   @override

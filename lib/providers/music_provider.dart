@@ -1,32 +1,59 @@
-import 'dart:convert';
+import 'dart:async';
 import 'dart:io';
 
 import 'package:audio_service/audio_service.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:encrypt/encrypt.dart' as enc;
-import 'package:url_launcher/url_launcher.dart';
 
 class MusicProvider extends ChangeNotifier {
-  String fileProcessResult = '';
-  bool isGranted = true;
+
   double progressValue = 0.0;
   List<File> mp3Files = [];
   Map<String, double> progressValueMap = {};
-  List<dynamic> audioList = [];
+  Map<String, String> isCancelledValueMap = {};
+
+  //List<dynamic> audioList = [];
   List<MediaItem> mediaItems = [];
   List<MediaItem> decryptedMediaItems = [];
+  String fileProcessResult = '';
+  bool _isGranted = true;
+  //bool isCancelled = false;
 
-  readAudio(BuildContext context) async {
+  bool get isGranted => _isGranted;
+
+  set isGranted(bool value) {
+    _isGranted = value;
+    notifyListeners();
+  }
+
+/*
+  bool _isDecrypted = false;
+
+  Map<String, bool> isDownloadingCompletedValueMap = {};
+  isDownloadingCompleted(int index , bool value){
+    isDownloadingCompletedValueMap['$index'] = value;
+    notifyListeners();
+  }
+  bool get isDecrypted => _isDecrypted;
+
+  set isDecrypted(bool value) {
+    _isDecrypted = value;
+    notifyListeners();
+  }*/
+
+
+
+/*  readAudio(BuildContext context) async {
     await DefaultAssetBundle.of(context)
         .loadString('json/audio.json')
         .then((value) {
       audioList = json.decode(value);
     });
     notifyListeners();
-  }
+  }*/
 
   Future<Directory?> get getExternalVisibleDir async {
     if (await Directory(
@@ -90,7 +117,8 @@ class MusicProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> downloadAndCreate(Map<String, dynamic> song, Directory? d,
+
+/* Future<void> downloadAndCreate(Map<String, dynamic> song, Directory? d,
       AudioHandler audioHandler, int index) async {
     if (await canLaunchUrl(Uri.parse(song['url']))) {
       if (kDebugMode) {
@@ -130,6 +158,7 @@ class MusicProvider extends ChangeNotifier {
             extras: {'url': song['url']},
             artUri: Uri.parse(song['artUri']!),
           );
+          addDecryptedMediaItems(newMediaItem);
           audioHandler.addQueueItem(newMediaItem);
         },
         onError: (e) {
@@ -145,7 +174,163 @@ class MusicProvider extends ChangeNotifier {
         print('Can\'t launch url');
       }
     }
+  }*/
+
+/*  Future<void> downloadAndCreate(Map<String, dynamic> song, Directory? d,
+      AudioHandler audioHandler, int index,bool isCancelled ) async {
+    // Cleanup the resources if the download is cancelled
+    if (isCancelled) {
+      // Perform any necessary cleanup here
+      // Reset progress and clear downloaded bytes, if needed
+      progressValue = 0.0;
+      progressValueMap['$index'] = 0.0;
+      notifyListeners();
+    }
+
+    if (await canLaunchUrl(Uri.parse(song['url']))) {
+      if (kDebugMode) {
+        print('Data downloading...');
+      }
+      var request = await HttpClient().getUrl(Uri.parse(song['url']));
+      var response = await request.close();
+      var length = response.contentLength;
+      var bytes = <int>[];
+      var received = 0;
+      response.listen(
+            (List<int> newBytes) {
+          // Check if cancellation is requested
+          if (isCancelled) {
+            request.abort();
+            bytes.clear();
+            return; // Exit the callback without processing further
+          }
+         if(!isCancelled) {
+           bytes.addAll(newBytes);
+           received += newBytes.length;
+           double progress = received / length;
+           progressValue = progress;
+           progressValueMap['$index'] = progressValue;
+           notifyListeners();
+           if (kDebugMode) {
+             print('Download progress: ${(progress * 100).toStringAsFixed(0)}%');
+           }
+         }
+        },
+        onDone: () async {
+          // Check if cancellation is requested
+          if (isCancelled) {
+            bytes.clear();
+            notifyListeners();
+            return; // Exit the method if cancellation is requested
+          }
+
+          var encResult = _encryptData(Uint8List.fromList(bytes));
+          String p = await _writeData(
+              encResult, '${d!.path}/${song['title']}.mp3.aes');
+          if (kDebugMode) {
+            print('File Encrypted successfully...$p');
+          }
+          var filePath = await getNormalFile(d, '${song['title']}.mp3');
+          song["url"] = filePath;
+          final newMediaItem = MediaItem(
+            id: song["id"],
+            title: song["title"],
+            album: song["album"],
+            extras: {'url': song['url']},
+            artUri: Uri.parse(song['artUri']!),
+          );
+          addDecryptedMediaItems(newMediaItem);
+          audioHandler.addQueueItem(newMediaItem);
+        },
+        onError: (e) {
+          if (kDebugMode) {
+            print('Error downloading file: $e');
+          }
+        },
+        cancelOnError: true,
+      );
+      notifyListeners();
+    } else {
+      if (kDebugMode) {
+        print('Can\'t launch url');
+      }
+    }
+
+
+  }*/
+  Future<void> downloadAndCreate(
+      Map<String, dynamic> song,
+      Directory? directory,
+      AudioHandler audioHandler,
+      int index,
+      List<CancelToken> cancelTokens,
+      ) async {
+    final filePath = '${directory?.path}/${song['title']}.mp3.aes';
+    try {
+      final dio = Dio();
+      final response = await dio.download(
+        song['url'],
+        filePath,
+        cancelToken: cancelTokens[index],
+        onReceiveProgress: (receivedBytes, totalBytes) {
+          // Update progress and notify listeners
+          final progress = receivedBytes / totalBytes;
+          progressValue = progress;
+          progressValueMap['$index'] = progressValue;
+          if(kDebugMode){
+            print('Download progress: ${(progress * 100).toStringAsFixed(0)}%');
+          }
+          notifyListeners();
+        },
+      );
+      // The download completed successfully
+      final encResult = _encryptData(Uint8List.fromList(await response.data));
+      final encryptedFilePath = await _writeData(encResult, filePath);
+
+      if (kDebugMode) {
+        print('File Encrypted successfully...$encryptedFilePath');
+      }
+
+      final newMediaItem = MediaItem(
+        id: song['id'],
+        title: song['title'],
+        album: song['album'],
+        extras: {'url': filePath},
+        artUri: Uri.parse(song['artUri']!),
+      );
+
+      addDecryptedMediaItems(newMediaItem);
+      audioHandler.addQueueItem(newMediaItem);
+
+      notifyListeners();
+    } on DioError catch (e) {
+      if (CancelToken.isCancel(e)) {
+        // Request was cancelled
+        if(kDebugMode){
+          print('${e.message}');
+        }
+        return;
+      }
+
+      if (kDebugMode) {
+        print('Error downloading file: $e');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error downloading file: $e');
+      }
+    }
   }
+
+
+  void cancelDownload(int index, List<CancelToken> cancelTokens,) {
+    cancelTokens[index].cancel('Cancelled');
+    progressValueMap['$index'] = 0.0;
+    cancelTokens[index] = CancelToken();
+    notifyListeners();
+  }
+
+
 
   Future<String> getNormalFile(
     Directory? d,
