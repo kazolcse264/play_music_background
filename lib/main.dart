@@ -38,7 +38,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Play Music Background',
       theme: Provider.of<ThemeProvider>(context).getTheme(),
-      home: const HomeScreen(),
+      home:  const HomeScreen(),
     );
   }
 }

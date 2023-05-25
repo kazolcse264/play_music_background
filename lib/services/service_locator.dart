@@ -3,7 +3,6 @@ import 'package:get_it/get_it.dart';
 
 import '../page_manager.dart';
 import 'audio_handler.dart';
-import 'playlist_repository.dart';
 
 GetIt getIt = GetIt.instance;
 

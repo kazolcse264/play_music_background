@@ -17,9 +17,9 @@ class ThemeProvider with ChangeNotifier {
   }
 
   Future<void> _initializePlatformBrightness() async {
-    var brightness = WidgetsBinding.instance.window.platformBrightness;
-    WidgetsBinding.instance.window.onPlatformBrightnessChanged = () {
-      final newBrightness = WidgetsBinding.instance.window.platformBrightness;
+    var brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
+    WidgetsBinding.instance.platformDispatcher.onPlatformBrightnessChanged = () {
+      final newBrightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
       if (newBrightness != brightness) {
         _isDarkMode = newBrightness == Brightness.dark;
         brightness = newBrightness;
@@ -35,7 +35,7 @@ class ThemeProvider with ChangeNotifier {
 
   Future<Brightness> _getPlatformBrightness() async {
     return await Future.value(
-        WidgetsBinding.instance.window.platformBrightness);
+        WidgetsBinding.instance.platformDispatcher.platformBrightness);
   }
 
   ThemeData getTheme() {
@@ -114,7 +114,7 @@ class MyWidgetsBindingObserver extends WidgetsBindingObserver {
 
   @override
   void didChangePlatformBrightness() {
-    final newBrightness = WidgetsBinding.instance.window.platformBrightness;
+    final newBrightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
     final isDarkMode = newBrightness == Brightness.dark;
     themeProvider.setTheme(isDarkMode);
   }

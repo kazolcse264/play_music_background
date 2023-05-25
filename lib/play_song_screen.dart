@@ -1,7 +1,6 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:play_music_background/playlist_song_screen.dart';
 import 'package:play_music_background/providers/music_provider.dart';
 import 'package:play_music_background/services/service_locator.dart';
 import 'package:play_music_background/utils/helper_functions.dart';
@@ -249,11 +248,11 @@ class AudioControlButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return const SizedBox(
       height: 60,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: const [
+        children: [
           RepeatButton(),
           //PreviousSongButton(),
           RewindSongButton(),

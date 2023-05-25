@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:play_music_background/providers/music_provider.dart';
 import 'package:play_music_background/providers/theme_provider.dart';
@@ -23,7 +24,9 @@ class _HomeScreenState extends State<HomeScreen> {
     readAudio();
   });
 
-  print('init state');
+  if (kDebugMode) {
+    print('init state');
+  }
   //Provider.of<MusicProvider>(context,listen: false).readAudio(context);
   Provider.of<MusicProvider>(context,listen: false). requestStoragePermission();
   Provider.of<MusicProvider>(context,listen: false).loadTempFiles();
