@@ -2,10 +2,10 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:audio_service/audio_service.dart';
-import 'package:diacritic/diacritic.dart';
+
 import 'package:dio/dio.dart';
-import 'package:filesize/filesize.dart';
-import 'package:path/path.dart' as path;
+
+
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -314,8 +314,8 @@ notifyListeners();
     decryptedMediaItems.add(mediaItem);
     notifyListeners();
   }
-
-  String getBaseUrl(pUrl) {
+//checking download and back again
+/*  String getBaseUrl(pUrl) {
     final parse = Uri.parse(pUrl);
     final uri = parse.query != '' ? parse.replace(query: '') : parse;
     String url = uri.toString();
@@ -329,7 +329,7 @@ notifyListeners();
     var baseUrl = getBaseUrl(url);
     String fileBaseName = path.basename(baseUrl);
     return path.join(temporaryDirectoryPath, 'Files', fileBaseName);
-  }
+  }*/
 
 /*  getCacheDirectory() async {
     return await getTemporaryDirectory();
@@ -461,8 +461,8 @@ notifyListeners();
     }
   }*/
 
-//checking download
-  Future<void> downloadAndCreate(
+//checking download and back again
+/*  Future<void> downloadAndCreate(
     Map<String, dynamic> song,
     Directory? directory,
     AudioHandler audioHandler,
@@ -483,7 +483,7 @@ notifyListeners();
       downloadButtonPressedCount: downloadButtonPressedCount,
     );
 
-    /*final dio = Dio();
+    *//*final dio = Dio();
       final cancelToken = cancelTokens[index];
       final response = await dio.get<List<int>>(
         song['url'],
@@ -496,9 +496,9 @@ notifyListeners();
           if (kDebugMode) print('Download progress: ${(progress * 100).toStringAsFixed(0)}%');
           notifyListeners();
         },
-      );*/
+      );*//*
 
-/*
+*//*
 
       final encryptedFileDestination = '${directory!.path}/${song['title']}.mp3.aes';
       final encResult = _encryptData(Uint8List.fromList(response.data!));
@@ -520,7 +520,7 @@ notifyListeners();
       addDecryptedMediaItems(newMediaItem);
       audioHandler.addQueueItem(newMediaItem);
 
-      notifyListeners();*/
+      notifyListeners();*//*
   }
 
   Future<File?> getItemFileWithProgress({
@@ -760,7 +760,7 @@ notifyListeners();
             ? 0
             : percent);
     notifyListeners();
-  }
+  }*/
 
 //Resume downloading
 /*  void resumeDownload(
@@ -819,7 +819,7 @@ notifyListeners();
     return await file.exists();
   }
 
-  _encryptData(Uint8List plainString) {
+/*  _encryptData(Uint8List plainString) {
     if (kDebugMode) {
       print('Encrypting File...');
     }
@@ -838,7 +838,7 @@ notifyListeners();
     File f = File(fileNamedWithPath);
     await f.writeAsBytes(encResult);
     return f.absolute.toString();
-  }
+  }*/
 
   _readData(String fileNamedWithPath) async {
     if (kDebugMode) {
