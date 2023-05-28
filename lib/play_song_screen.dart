@@ -68,7 +68,6 @@ class _PlaySongScreenState extends State<PlaySongScreen> {
           },
         ),
       ),
-      //extendBodyBehindAppBar: true,
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -103,8 +102,6 @@ class _PlaySongScreenState extends State<PlaySongScreen> {
                       .copyWith(color: Colors.white),
                 ),
                 const SizedBox(height: 30),
-                //CurrentSongTitle(),
-                //Playlist(),
                 const AudioProgressBar(),
                 const AudioControlButtons(),
               ],
@@ -200,7 +197,7 @@ class Playlist extends StatelessWidget {
                     title: Text(
                       playlistTitles[index],
                     ),
-                    //trailing: AddRemoveSongButtons(),
+
                   ),
                 ),
                 const SizedBox(

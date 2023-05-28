@@ -1,7 +1,22 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class ThemeProvider with ChangeNotifier {
+  bool _isConnected = true; // Default to true assuming internet is initially available
+
+  bool get isConnected => _isConnected;
+
+  Future<void> checkConnectivity() async {
+    var connectivityResult = await (Connectivity().checkConnectivity());
+    if (connectivityResult == ConnectivityResult.mobile ||
+        connectivityResult == ConnectivityResult.wifi) {
+      _isConnected = true;
+    } else {
+      _isConnected = false;
+    }
+    notifyListeners();
+  }
   bool _isDarkMode = false;
 
   ThemeProvider() {

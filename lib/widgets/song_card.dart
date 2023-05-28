@@ -1,17 +1,21 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:filesize/filesize.dart';
 import 'package:flutter/foundation.dart';
-
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
-
+import 'package:encrypt/encrypt.dart' as enc;
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 
 import 'package:path/path.dart' as path;
 import 'package:system_info2/system_info2.dart';
 import 'dart:io' as io;
+import '../page_manager.dart';
+import '../play_song_screen.dart';
+import '../providers/music_provider.dart';
 import '../providers/theme_provider.dart';
 import '../services/service_locator.dart';
 import '../utils/helper_functions.dart';
@@ -35,13 +39,8 @@ class SongCard extends StatefulWidget {
 class _SongCardState extends State<SongCard> {
   final audioHandler = getIt<AudioHandler>();
   bool isDownloadingCompleted = false;
-
-  //late List<CancelToken> cancelTokens;
   int downloadButtonPressedCount = 1;
 
-  ////////////////////
-
-  //String fileUrl = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
   static const noFilesStr = 'No Files';
 
   final double maxAvailableMemory = 0.80; // Max limit of available memory
@@ -66,7 +65,6 @@ class _SongCardState extends State<SongCard> {
   final multipartNotifier = ValueNotifier<bool>(false);
   final localNotifier = ValueNotifier<String?>(null);
 
-  ////////////////
 
   @override
   void initState() {
@@ -81,13 +79,13 @@ class _SongCardState extends State<SongCard> {
     super.dispose();
   }
 
-//////////////////////
   initializeLocalStorageRoute() async {
     dir = await getCacheDirectory();
     debugPrint('initState() - dir: "${dir?.path}"');
   }
 
-  _download(String fileUrl) async {
+  _download(String fileUrl, Map<String, dynamic> song,
+      MusicProvider musicProvider) async {
     before = DateTime.now();
     debugPrint('_download()...');
     localNotifier.value = null;
@@ -247,21 +245,21 @@ class _SongCardState extends State<SongCard> {
     final totalSpeed = file.lengthSync() / totalElapsed * 1000;
     debugPrint('_download()... SPEED: \n${filesize(totalSpeed.round())}ps');
     _checkOnLocal(fileUrl: fileUrl, fileLocalRouteStr: fileLocalRouteStr);
-    if (kDebugMode) {
-      print('File Local route  = $fileLocalRouteStr');
-    }
-/*    File file = File(fileLocalRouteStr);
-    Uint8List fileBytes = await file.readAsBytes();
-    final encryptedFileDestination = '${file.path}.aes';
+
+    /*After Downloading completed successfully, encrytion decryption process will start*/
+
+    File fileForEncrypt = File(fileLocalRouteStr);
+    Uint8List fileBytes = await fileForEncrypt.readAsBytes();
+    final encryptedFileDestination = '${fileForEncrypt.path}.aes';
     final encResult = _encryptData(fileBytes);
     final encryptedFileFinalPath =
-    await _writeData(encResult, encryptedFileDestination);
+        await _writeData(encResult, encryptedFileDestination);
 
     if (kDebugMode) {
       print('File Encrypted successfully...$encryptedFileFinalPath');
     }
-    var filePath = await getNormalFile(
-        encryptedFileDestination, '${song['title']}.mp3');
+    var filePath =
+        await getNormalFile(encryptedFileDestination, '${song['title']}.mp3');
 
     song["url"] = filePath;
     final newMediaItem = MediaItem(
@@ -272,10 +270,11 @@ class _SongCardState extends State<SongCard> {
       artUri: Uri.parse(song['artUri']!),
     );
 
-    addDecryptedMediaItems(newMediaItem);
+    musicProvider.addDecryptedMediaItems(newMediaItem);
     audioHandler.addQueueItem(newMediaItem);
-    loadTempFiles();
-    notifyListeners();*/
+    musicProvider.loadTempFiles();
+    setState(() {});
+    /*deleteLocal(fileForEncrypt);*/
   }
 
   _cancel(String fileUrl) {
@@ -345,25 +344,16 @@ class _SongCardState extends State<SongCard> {
   }
 
   Future<int> _getMaxMemoryUsage() async {
-    // debugPrint('_getMaxMemoryUsage()...');
 
-    // final totalPhysicalMemory = SysInfo.getTotalPhysicalMemory();
     final freePhysicalMemory = SysInfo.getFreePhysicalMemory();
 
-    // debugPrint('_getMaxMemoryUsage() - totalPhysicalMemory: "$totalPhysicalMemory" - ${filesize(totalPhysicalMemory)}');
-    // debugPrint('_getMaxMemoryUsage() - freePhysicalMemory: "$freePhysicalMemory" - ${filesize(freePhysicalMemory)}');
 
     final maxMemoryUsage = (freePhysicalMemory * maxAvailableMemory).round();
     return maxMemoryUsage;
   }
 
   int _calculateOptimalMaxParallelDownloads(int fileSize, int maxMemoryUsage) {
-    // debugPrint('_calculateOptimalMaxParallelDownloads()...');
 
-    // final maxParallelDownloads = (fileSize / maxMemoryUsage).ceil();
-    // final maxParallelDownloads = (maxMemoryUsage / fileSize).ceil();
-
-    // final maxParallelDownloads = (fileSize / maxMemoryUsage).ceil();
 
     final maxPartSize = (maxMemoryUsage / availableCores).floor();
     final maxParallelDownloads = (fileSize / maxPartSize).ceil();
@@ -371,17 +361,12 @@ class _SongCardState extends State<SongCard> {
     final result = maxParallelDownloads > availableCores
         ? availableCores
         : ((maxParallelDownloads + availableCores) / 2).floor();
-    // : ((maxParallelDownloads + availableCores) / 2).ceil();
 
-    // debugPrint('..maxParallelDownloads: $maxParallelDownloads');
-    // debugPrint('..availableCores: $availableCores');
-    // debugPrint('..result: $result');
 
     return result;
   }
 
   _onReceiveProgress(int received, int total, index, sizes) {
-    // debugPrint('_onReceiveProgress(index: "$index")... received: "$received", total: "$total"');
     var cancelToken = cancelTokenList.elementAt(index);
     if (!cancelToken.isCancelled) {
       int sum = sizes.fold(0, (p, c) => p + c);
@@ -408,7 +393,7 @@ class _SongCardState extends State<SongCard> {
         return;
       }
 
-      //////////////////////////////////////////////////////////////////////////
+
       var dir = path.dirname(fileLocalRouteStr);
       int sumSizes = 0;
       final localDir = Directory(dir);
@@ -430,11 +415,11 @@ class _SongCardState extends State<SongCard> {
           before!.millisecondsSinceEpoch;
 
       /// CONVERT TO SECONDS AND GET THE SPEED IN BYTES PER SECOND
-      // final totalSpeed = (sumSize ?? 0) / totalElapsed * 1000;
+
       final totalSpeed = (sumSizes - sumPrevSize) / totalElapsed * 1000;
 
       speedNotifier.value = totalSpeed;
-      //////////////////////////////////////////////////////////////////////////
+
       String percent = (valueNew * 100).toStringAsFixed(2);
       int speed = speedNotifier.value?.ceil() ?? 0;
 
@@ -449,7 +434,6 @@ class _SongCardState extends State<SongCard> {
           'percent: "$percent", '
           'speed: "${filesize(speed)} / second"');
     } else {
-      // debugPrint('_onReceiveProgress(index: "$index")...percentNotifier [AFTER CANCELED]: ${(percentNotifier.value![index] * 100).toStringAsFixed(2)}');
       debugPrint(
           '_onReceiveProgress(index: "$index")...percentNotifier [AFTER CANCELED]: ${(percentNotifier.value![index].value! * 100).toStringAsFixed(2)}');
     }
@@ -514,10 +498,6 @@ class _SongCardState extends State<SongCard> {
           headers: {'Range': 'bytes=${start + sumSizes}-$end'},
         );
       } else {
-        // List tempList = percentNotifier.value!;
-        // tempList[index] = 1.0;
-        // percentNotifier.value = List.from(tempList);
-        // percentNotifier.notifyListeners();
 
         percentNotifier.value![index].value = 1.0;
 
@@ -532,7 +512,7 @@ class _SongCardState extends State<SongCard> {
       }
     }
 
-    // if ((percentNotifier.value?[index] ?? 0) < 1) {
+
     if ((percentNotifier.value?[index].value ?? 0) < 1) {
       CancelToken cancelToken = cancelTokenList.elementAt(index);
       if (cancelToken.isCancelled) {
@@ -565,7 +545,6 @@ class _SongCardState extends State<SongCard> {
       String filePartLocalRouteStr = '$dir/$basename' '_$i.part';
       File f = File(filePartLocalRouteStr);
       while (f.existsSync()) {
-        // raf = await raf.writeFrom(await f.readAsBytes());
         await raf.writeFrom(await f.readAsBytes());
         await f.delete();
 
@@ -576,7 +555,6 @@ class _SongCardState extends State<SongCard> {
       await raf.close();
     }
 
-    // _checkOnLocal(fileUrl: fileUrl, fileLocalRouteStr: fileLocalRouteStr);
     debugPrint(
         'getChunkFileWithProgress(index: "$index") - RETURN FILE: "$basename"');
     return localFile;
@@ -647,23 +625,94 @@ class _SongCardState extends State<SongCard> {
     localNotifier.value = localText;
   }
 
-/*  _deleteLocal() {
+  /* deleteLocal(File file) {
     localNotifier.value = null;
     percentNotifier.value = null;
     percentTotalNotifier.value = null;
     speedNotifier.value = null;
     sumPrevSize = 0;
-    dir!.deleteSync(recursive: true);
+    file.deleteSync(recursive: true);
   }*/
 
-  ////////////
+  Future<String> getNormalFile(
+    String encryptedFileDestination,
+    String fileName,
+  ) async {
+    try {
+      Uint8List encData = await _readData(encryptedFileDestination);
+      var plainData = await _decryptData(encData);
+      var tempFile = await _createTempFile(fileName);
+
+      tempFile.writeAsBytesSync(plainData);
+      if (kDebugMode) {
+        print('File Decrypted Successfully... ');
+      }
+      return tempFile.path;
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error : ${e.toString()}');
+      }
+      return '';
+    }
+  }
+
+  Future<bool> checkIfFileExists(String filePath) async {
+    File file = File(filePath);
+    return await file.exists();
+  }
+
+  _encryptData(Uint8List plainString) {
+    if (kDebugMode) {
+      print('Encrypting File...');
+    }
+
+    final encrypted =
+        MyEncrypt.myEncrypter.encryptBytes(plainString, iv: MyEncrypt.myIv);
+
+    return encrypted.bytes;
+  }
+
+  _writeData(encResult, String fileNamedWithPath) async {
+    if (kDebugMode) {
+      print('Writing data...');
+    }
+
+    File f = File(fileNamedWithPath);
+    await f.writeAsBytes(encResult);
+    return f.absolute.toString();
+  }
+
+  _readData(String fileNamedWithPath) async {
+    if (kDebugMode) {
+      print('Reading data...');
+    }
+
+    File f = File(fileNamedWithPath);
+    return await f.readAsBytes();
+  }
+
+  _decryptData(Uint8List encData) {
+    if (kDebugMode) {
+      print('File decryption in progress...');
+    }
+    enc.Encrypted en = enc.Encrypted(encData);
+    return MyEncrypt.myEncrypter.decryptBytes(en, iv: MyEncrypt.myIv);
+  }
+
+  Future<File> _createTempFile(String fileName) async {
+    final directory = await getTemporaryDirectory();
+    final tempFilePath = '${directory.path}/$fileName';
+    return File(tempFilePath);
+  }
+
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
-    //final musicProvider = Provider.of<MusicProvider>(context, listen: false);
-    /*var isFileLocal = musicProvider.isFileInList(
+    final musicProvider = Provider.of<MusicProvider>(context, listen: false);
+    var isFileLocal = musicProvider.isFileInList(
         '${widget.audioList[widget.index]['title']}.mp3',
-        musicProvider.mp3Files);*/
+        musicProvider.mp3Files);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
       child: ListTile(
@@ -673,14 +722,16 @@ class _SongCardState extends State<SongCard> {
           height: 60,
           width: 60,
           decoration: BoxDecoration(
-            color:
-                themeProvider.isDarkMode ? Colors.grey.shade900 : Colors.white,
+            color: themeProvider.isDarkMode ? Colors.grey.shade900 : Colors.white,
             borderRadius: BorderRadius.circular(30.0),
-            image: DecorationImage(
-              image: NetworkImage(
-                widget.song['artUri'],
-              ),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(30.0),
+            child: CachedNetworkImage(
+              imageUrl: widget.song['artUri'],
               fit: BoxFit.fitWidth,
+              placeholder: (context, url) => const CircularProgressIndicator(color: Colors.blue,strokeWidth: 2),
+              errorWidget: (context, url, error) => const Icon(Icons.error),
             ),
           ),
         ),
@@ -699,426 +750,148 @@ class _SongCardState extends State<SongCard> {
                 fontWeight: FontWeight.bold,
               ),
         ),
-        trailing: SizedBox(
-          height: 50,
-          width: 120,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              ValueListenableBuilder<List<ValueNotifier<double?>>?>(
-                  valueListenable: percentNotifier,
-                  builder: (context, percentList, _) {
-                    // double? totalPercent = percentList?.fold(0, (p, c) => p! + c);
-                    double? totalPercent = percentList?.fold(
-                        0, (p, c) => (p ?? 0) + (c.value ?? 0));
-                    totalPercent = totalPercent ?? 0;
-                    if (percentList != null && percentList.isNotEmpty) {
-                      totalPercent = totalPercent / percentList.length;
-                    }
-                    totalPercent =
-                        (totalPercent > 1.0 ? 1.0 : totalPercent) * 100;
-                    if (percentList == null || percentList.isEmpty == true) {
-                      return const Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          SizedBox(
-                            width: 50,
-                            height: 50,
-                            child: CircularProgressIndicator(
-                              value: 100,
-                              // color: Colors.grey,
-                              color: Colors.transparent,
-                            ),
-                          ),
-                          Text('0.00'),
-                        ],
-                      );
-                    }
-                    return ValueListenableBuilder<double?>(
-                        valueListenable: percentList.first,
-                        builder: (context, percent, _) {
-                          return Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              SizedBox(
-                                width: 60,
-                                height: 60,
-                                child: CircularProgressIndicator(
-                                  value: percent == 0 ? null : percent,
-                                ),
-                              ),
-                              Text(((percent ?? 0) * 100).toStringAsFixed(2)),
-                            ],
-                          );
-                        });
-                  }),
-              /*    IconButton(onPressed: (){
-               _download(widget.song["url"]);
-               print('clicked');
-             }, icon:const Icon(Icons.download)),
-             IconButton(onPressed: (){
-               _cancel(widget.song["url"]);
-             }, icon:const Icon(Icons.cancel)),*/
-              ValueListenableBuilder<double?>(
-                  valueListenable: percentTotalNotifier,
-                  builder: (context, percent, _) {
-                    return FloatingActionButton(
-                      onPressed: () {
-                        percent == 0 || percent == 1
-                            ? null
-                            : percent == null
-                                ? _download(widget.song["url"])
-                                : localNotifier.value != null
-                                    ? _download(widget.song["url"])
-                                    : _cancel(widget.song["url"]);
-                      },
-                      tooltip: percent == null ? 'Download' : 'Cancel',
-                      backgroundColor:
-                          percent == 0 || percent == 1 ? Colors.grey : null,
-                      child: Icon(percent == 0
-                          ? Icons.downloading
-                          : percent == 1
-                              ? Icons.download_done
-                              : percent == null
-                                  ? Icons.download
-                                  : localNotifier.value != null
-                                      ? Icons.download
-                                      : Icons.close),
-                    );
-                  }),
-            ],
-          ),
-        ),
-        /*   trailing: (isFileLocal)
-              ? InkWell(
-                  onTap: () async {
-                    widget.song["url"] =
-                        '/data/user/0/com.example.play_music_background/cache/${widget.song['title']}.mp3';
+        trailing: (isFileLocal)
+            ? InkWell(
+                onTap: () async {
+                  widget.song["url"] =
+                      '/data/user/0/com.example.play_music_background/cache/${widget.song['title']}.mp3';
 
-                    final newMediaItem = MediaItem(
-                      id: widget.song["id"],
-                      title: widget.song["title"],
-                      album: widget.song["album"],
-                      extras: {'url': widget.song['url']},
-                      artUri: Uri.parse(widget.song['artUri']!),
-                    );
-                    musicProvider.addDecryptedMediaItems(newMediaItem);
-                    if (kDebugMode) {
-                      print(musicProvider.decryptedMediaItems);
-                    }
-                    audioHandler.addQueueItem(newMediaItem);
-                    final pageManager = getIt<PageManager>();
-                    pageManager.play();
-                    if (mounted) {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                PlaySongScreen(song: widget.song),
-                          ));
-                    }
-                  },
-                  child: Container(
-                    height: 50,
-                    width: 50,
-                    color: themeProvider.isDarkMode
-                        ? Colors.grey.shade900
-                        : Colors.white,
-                    child: Icon(
-                      Icons.play_circle,
-                      color: themeProvider.isDarkMode
-                          ? Colors.white
-                          : Colors.grey.shade900,
-                      size: 35,
-                    ),
-                  ),
-                )
-              : Consumer<MusicProvider>(
-                  builder: (context, provider, child) {
-                    return InkWell(
-                      onTap: () async {
-                        setState(() {
-                          isDownloadingCompleted = !isDownloadingCompleted;
-                        });
-                        if (isDownloadingCompleted) {
-                          Directory? directory =
-                              await musicProvider.getExternalVisibleDir;
-                        */ /*  if (provider.progressValueMap['${widget.index}'] ==
-                                  0 ||
-                              provider.progressValueMap['${widget.index}'] ==
-                                  1) {
-                            return; // No action when percentNotifier is 0 or 1
-                          }*/ /*
-                         */ /* if (provider.progressValueMap['${widget.index}'] ==
-                                  null || provider.progressValueMap['${widget.index}'] != null ||
-                              provider.localNotifierMap['${widget.index}'] !=
-                                  null){
-                           await provider.downloadAndCreate(
-                                widget.song,
-                                directory,
-                                audioHandler,
-                                widget.index,
-                                cancelTokens,
-                               downloadButtonPressedCount++,
-                               ).then((_) {
-                              setState(() {
-                                // Perform any other state updates here
-                              });
-                            });
-                          }*/ /*
-
-                          await provider.downloadAndCreate(
-                            widget.song,
-                            directory,
-                            audioHandler,
-                            widget.index,
-                            cancelTokens,
-                            downloadButtonPressedCount++,
-                          ).then((_) {
-                            setState(() {
-                              // Perform any other state updates here
-                            });
-                          });
-
-                        }
-                      },
-                      child: (!isDownloadingCompleted)
-                          ? Container(
-                              height: 50,
-                              width: 50,
-                              color: themeProvider.isDarkMode
-                                  ? Colors.grey.shade900
-                                  : Colors.white,
-                              child: Icon(
-                                Icons.download,
-                                size: 35,
-                                color: themeProvider.isDarkMode
-                                    ? Colors.white
-                                    : Colors.grey.shade900,
-                              ))
-                          : SizedBox(
-                              width: 100,
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  SizedBox(
-                                    height: 50,
-                                    width: 50,
-                                    child:  (double.parse((provider.progressValueMap['${widget.index}'] ?? 0 * 100).toStringAsFixed(0)) >= 100) ? const CircularProgressIndicator(): Stack(
-                                      alignment: Alignment.center,
-                                      children: [
-                                        CircularProgressIndicator(
-                                          value: provider.progressValueMap[
-                                              '${widget.index}'],
-                                          strokeWidth: 5,
-                                          backgroundColor: Colors.grey[300],
-                                          valueColor:
-                                              const AlwaysStoppedAnimation<
-                                                  Color>(Colors.blue),
-                                        ),
-                                        Text(
-                                          '${(provider.progressValueMap['${widget.index}'] == null ? 0 : provider.progressValueMap['${widget.index}']! * 100).toStringAsFixed(0)}%',
-                                          style: const TextStyle(
-                                            color: Colors.black,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  IconButton(
-                                    onPressed: () async {
-                                      setState(() {
-                                        isDownloadingCompleted =
-                                            !isDownloadingCompleted;
-                                      });
-                                      musicProvider.cancel(
-                                          widget.song, widget.index,cancelTokens);
-                                    },
-                                    icon: const Icon(Icons.cancel),
-                                  ),
-
-                                  // IconButton(onPressed: (){}, icon: Icon(Icons.pause)),
-                                ],
-                              ),
-                            ),
-                    );
-                  },
-                )*/
-
-/*         trailing: (isFileLocal)
-              ? InkWell(
-                  onTap: () async {
-                    widget.song["url"] = '/data/user/0/com.example.play_music_background/cache/${widget.song['title']}.mp3';
-
-                    final newMediaItem = MediaItem(
-                      id: widget.song["id"],
-                      title: widget.song["title"],
-                      album: widget.song["album"],
-                      extras: {'url': widget.song['url']},
-                      artUri: Uri.parse(widget.song['artUri']!),
-                    );
-                    musicProvider.addDecryptedMediaItems(newMediaItem);
+                  final newMediaItem = MediaItem(
+                    id: widget.song["id"],
+                    title: widget.song["title"],
+                    album: widget.song["album"],
+                    extras: {'url': widget.song['url']},
+                    artUri: Uri.parse(widget.song['artUri']!),
+                  );
+                  if (kDebugMode) {
                     print(musicProvider.decryptedMediaItems);
-                    audioHandler.addQueueItem(newMediaItem);
-                    final pageManager = getIt<PageManager>();
-                    pageManager.play();
-                    if (mounted) {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                PlaySongScreen(song: widget.song),
-                          ));
-                    }
-                  },
-                  child: Container(
-                          height: 50,
-                          width: 50,
-                          color: themeProvider.isDarkMode
-                              ? Colors.grey.shade900
-                              : Colors.white,
-                          child: Icon(
-                            Icons.play_circle,
-                            color: themeProvider.isDarkMode
-                                ? Colors.white
-                                : Colors.grey.shade900,
-                            size: 35,
-                          ),
-                        ),
-                )
-              : InkWell(
-                  onTap: isDownloadingCompleted
-                      ? null
-                      : () async {
-                          setState(() {
-                            isDownloadingCompleted = true;
-                          });
-                        Directory? d =
-                              await musicProvider.getExternalVisibleDir;
-                          await musicProvider.downloadAndCreate(
-                              widget.song, d, audioHandler, widget.index, cancelTokens,true);
-                        },
-                  child: (isDownloadingCompleted == false)
-                      ? Icon(
-                          Icons.download,
-                          size: 35,
-                          color: themeProvider.isDarkMode
-                              ? Colors.white
-                              : Colors.grey.shade900,
-                        )
-                      : Consumer<MusicProvider>(
-                          builder: (context, provider, child) {
-                            return Row(
-                              mainAxisSize: MainAxisSize.min,
+                  }
+                  audioHandler.addQueueItem(newMediaItem);
+                  final pageManager = getIt<PageManager>();
+                  pageManager.play();
+                  if (mounted) {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              PlaySongScreen(song: widget.song),
+                        ));
+                  }
+                },
+                child: Container(
+                  height: 50,
+                  width: 50,
+                  color: themeProvider.isDarkMode
+                      ? Colors.grey.shade900
+                      : Colors.white,
+                  child: Icon(
+                    Icons.play_circle,
+                    color: themeProvider.isDarkMode
+                        ? Colors.white
+                        : Colors.grey.shade900,
+                    size: 35,
+                  ),
+                ),
+              )
+            : SizedBox(
+                height: 50,
+                width: 100,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    ValueListenableBuilder<List<ValueNotifier<double?>>?>(
+                        valueListenable: percentNotifier,
+                        builder: (context, percentList, _) {
+                          double? totalPercent = percentList?.fold(
+                              0, (p, c) => (p ?? 0) + (c.value ?? 0));
+                          totalPercent = totalPercent ?? 0;
+                          if (percentList != null && percentList.isNotEmpty) {
+                            totalPercent = totalPercent / percentList.length;
+                          }
+                          totalPercent =
+                              (totalPercent > 1.0 ? 1.0 : totalPercent) * 100;
+                          if (percentList == null ||
+                              percentList.isEmpty == true) {
+                            return const Stack(
+                              alignment: Alignment.center,
                               children: [
                                 SizedBox(
-                                  height: 50,
-                                  width: 50,
-                                  child: (provider.progressValueMap[
-                                              '${widget.index}'] ==
-                                          null)
-                                      ? CircularProgressIndicator(
-                                          strokeWidth: 5,
-                                          backgroundColor: Colors.grey[300],
-                                          valueColor:
-                                              const AlwaysStoppedAnimation<Color>(
-                                                  Colors.blue),
-                                        )
-                                      : ('${(provider.progressValueMap['${widget.index}']! * 100).toStringAsFixed(0)}%' ==
-                                              '100%')
-                                          ? (provider.fileProcessResult ==
-                                                  'File Decrypted Successfully...')
-                                              ? InkWell(
-                                                  onTap: () {
-                                                    final pageManager =
-                                                        getIt<PageManager>();
-                                                    pageManager.play();
-                                                    if (mounted) {
-                                                      Navigator.push(
-                                                          context,
-                                                          MaterialPageRoute(
-                                                            builder: (context) =>
-                                                                PlaySongScreen(
-                                                                    song: widget
-                                                                        .song),
-                                                          ));
-                                                    }
-                                                  },
-                                                  child: Container(
-                                                    height: 50,
-                                                    width: 50,
-                                                    color: themeProvider.isDarkMode
-                                                        ? Colors.grey.shade900
-                                                        : Colors.white,
-                                                    child: Icon(
-                                                      Icons.play_circle,
-                                                      color: themeProvider
-                                                              .isDarkMode
-                                                          ? Colors.white
-                                                          : Colors.grey.shade900,
-                                                      size: 35,
-                                                    ),
-                                                  ),
-                                                )
-                                              : const Wrap(
-                                                  children: [
-                                                    Text(
-                                                      'ED Running...',
-                                                      style: TextStyle(
-                                                        color: Colors.green,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                )
-                                          : Stack(
-                                              alignment: Alignment.center,
-                                              children: [
-                                                CircularProgressIndicator(
-                                                  value: provider.progressValueMap[
-                                                      '${widget.index}'],
-                                                  strokeWidth: 5,
-                                                  backgroundColor: Colors.grey[300],
-                                                  valueColor:
-                                                      const AlwaysStoppedAnimation<
-                                                          Color>(Colors.blue),
-                                                ),
-                                                */ /*Text(
-                                                  '${(provider.progressValueMap['${widget.index}']! * 100).toStringAsFixed(0)}%',
-                                                  style: const TextStyle(
-                                                    color: Colors.black,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),*/ /*
-                                                IconButton(
-                                                    onPressed: () async{
-                                                      provider.cancelDownload(widget.index, cancelTokens);
-
-                                                      setState(() {
-                                                        isDownloadingCompleted = false;
-                                                      });
-                                                    },
-                                                    icon: const Icon(
-                                                      Icons.cancel,
-                                                      color: Colors.red,
-                                                    ))
-                                              ],
-                                            ),
+                                  width: 40,
+                                  height: 40,
+                                  child: CircularProgressIndicator(
+                                    value: 100,
+                                    // color: Colors.grey,
+                                    color: Colors.transparent,
+                                  ),
                                 ),
-                                IconButton(onPressed: ()async{
-                                Directory? d =
-                                      await musicProvider.getExternalVisibleDir;
-                                  provider.downloadAndCreate(widget.song, d, audioHandler, widget.index, cancelTokens,false);
-                                  setState(() {
-                                    isDownloadingCompleted = false;
-                                  });
-                                }, icon: const Icon(Icons.file_download_off_rounded,),)
                               ],
                             );
-                          },
-                        ),
-                )*/
+                          }
+                          return ValueListenableBuilder<double?>(
+                              valueListenable: percentList.first,
+                              builder: (context, percent, _) {
+                                return Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    SizedBox(
+                                      width: 35,
+                                      height: 35,
+                                      child: CircularProgressIndicator(
+                                        value: percent == 0 ? null : percent,
+                                        valueColor: themeProvider.isDarkMode
+                                            ? const AlwaysStoppedAnimation<
+                                                Color>(Colors.white)
+                                            : AlwaysStoppedAnimation<Color>(
+                                                Colors.grey.shade900),
+                                      ),
+                                    ),
+                                    Text(
+                                      '${((percent ?? 0) * 100).toStringAsFixed(0)}%',
+                                    ),
+                                  ],
+                                );
+                              });
+                        }),
+                    ValueListenableBuilder<double?>(
+                        valueListenable: percentTotalNotifier,
+                        builder: (context, percent, _) {
+                          return IconButton(
+                              color: themeProvider.isDarkMode
+                                  ? Colors.white
+                                  : Colors.grey.shade900,
+                              iconSize: 35,
+                              //heroTag: null,
+                              onPressed: () {
+                                percent == 0 || percent == 1
+                                    ? null
+                                    : percent == null
+                                        ? _download(widget.song["url"],
+                                            widget.song, musicProvider)
+                                        : localNotifier.value != null
+                                            ? _download(widget.song["url"],
+                                                widget.song, musicProvider)
+                                            : _cancel(widget.song["url"]);
+                              },
+                              tooltip: percent == null ? 'Download' : 'Cancel',
+                              icon: (percent == 0)
+                                  ? SizedBox(
+                                      width: 60,
+                                      child: Image.asset('assets/spinner.gif'),
+                                    )
+                                  : (percent == 1)
+                                      ? const Icon(Icons.download_done_rounded)
+                                      : (percent == null)
+                                          ? const Icon(Icons.download_rounded)
+                                          : (localNotifier.value != null)
+                                              ? const Icon(
+                                                  Icons.download_rounded)
+                                              : const Icon(Icons.cancel_rounded)
+                              );
+                        }),
+                  ],
+                ),
+              ),
       ),
     );
   }

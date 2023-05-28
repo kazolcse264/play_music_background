@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:play_music_background/home_screen.dart';
+import 'package:play_music_background/providers/connection_provider.dart';
 import 'package:play_music_background/providers/music_provider.dart';
 import 'package:play_music_background/providers/theme_provider.dart';
 import 'package:provider/provider.dart';
@@ -20,9 +21,12 @@ void main() async {
         ChangeNotifierProvider(
           create: (_) => MusicProvider(),
         ),
+        ChangeNotifierProvider(
+          create: (_) => ConnectivityProvider(),
+        ),
         ChangeNotifierProvider.value(
           value: themeProvider,
-        )
+        ),
       ],
       child: const MyApp(),
     ),
