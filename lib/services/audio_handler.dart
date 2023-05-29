@@ -10,6 +10,11 @@ Future<AudioHandler> initAudioService() async {
       androidNotificationChannelName: 'Audio Service Demo',
       androidNotificationOngoing: true,
       androidStopForegroundOnPause: true,
+      
+
+      ///////////////
+      androidNotificationClickStartsActivity: true,
+      androidResumeOnClick: true,
     ),
   );
 }
@@ -28,6 +33,7 @@ class MyAudioHandler extends BaseAudioHandler {
   Future<void> _loadEmptyPlaylist() async {
     try {
       await _player.setAudioSource(_playlist);
+
     } catch (e) {
       if (kDebugMode) {
         print("Error: $e");
@@ -40,10 +46,12 @@ class MyAudioHandler extends BaseAudioHandler {
       final playing = _player.playing;
       playbackState.add(playbackState.value.copyWith(
         controls: [
-          MediaControl.skipToPrevious,
+          //MediaControl.skipToPrevious,
+          MediaControl.rewind,
           if (playing) MediaControl.pause else MediaControl.play,
           MediaControl.stop ,
-          MediaControl.skipToNext,
+          MediaControl.fastForward ,
+          //MediaControl.skipToNext,
         ],
         systemActions: const {
           MediaAction.seek,
@@ -132,8 +140,8 @@ class MyAudioHandler extends BaseAudioHandler {
   }
 
   UriAudioSource _createAudioSource(MediaItem mediaItem) {
-    return AudioSource.uri(
-      Uri.parse(mediaItem.extras!['url']),
+    return  AudioSource.uri(
+      Uri.parse(mediaItem.extras?['url'] ?? 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'),
       tag: mediaItem,
     );
     //AudioSource.file(mediaItem.extras!['url'] as String,tag: mediaItem,);
@@ -173,7 +181,10 @@ class MyAudioHandler extends BaseAudioHandler {
   @override
   Future<void> skipToPrevious() => _player.seekToPrevious();
 
-
+@override
+  Future<void> fastForward() => _player.seek(Duration(seconds: _player.position.inSeconds + 10));
+  @override
+  Future<void> rewind() =>  _player.seek(Duration(seconds: _player.position.inSeconds - 10));
   @override
   Future<void> setRepeatMode(AudioServiceRepeatMode repeatMode) async {
     switch (repeatMode) {
@@ -204,6 +215,7 @@ class MyAudioHandler extends BaseAudioHandler {
   Future<void> customAction(String name, [Map<String, dynamic>? extras]) async {
     if (name == 'dispose') {
       await _player.dispose();
+      await _player.stop();
       super.stop();
     }
   }
@@ -213,4 +225,11 @@ class MyAudioHandler extends BaseAudioHandler {
     await _player.stop();
     return super.stop();
   }
+/*  @override
+  Future<void> onTaskRemoved() async {
+    await _player.stop();
+    await _player.dispose();
+    return super.onTaskRemoved();
+  }*/
+
 }

@@ -11,11 +11,11 @@ class PageManager {
   final currentSongTitleNotifier = ValueNotifier<String>('');
   final playlistNotifier = ValueNotifier<List<String>>([]);
 
-  final fileListNotifier = ValueNotifier<List<Map<String, dynamic>>>([{}]);
-
   final progressNotifier = ProgressNotifier();
   final repeatButtonNotifier = RepeatButtonNotifier();
   final isFirstSongNotifier = ValueNotifier<bool>(true);
+  final rewindSongNotifier = ValueNotifier<bool>(true);
+  final fastForwardSongNotifier = ValueNotifier<bool>(true);
   final playButtonNotifier = PlayButtonNotifier();
   final isLastSongNotifier = ValueNotifier<bool>(true);
   final isShuffleModeEnabledNotifier = ValueNotifier<bool>(false);
@@ -60,6 +60,7 @@ class PageManager {
         playlistNotifier.value = newList;
       }
       _updateSkipButtons();
+      _updateRewindAndFastForwardButton();
     });
   }
 
@@ -118,7 +119,22 @@ class PageManager {
     _audioHandler.mediaItem.listen((mediaItem) {
       currentSongTitleNotifier.value = mediaItem?.title ?? '';
       _updateSkipButtons();
+      _updateRewindAndFastForwardButton();
     });
+  }
+
+  void _updateRewindAndFastForwardButton() {
+    final currentPosition = _audioHandler.playbackState.value.position;
+    final duration = _audioHandler.mediaItem.value?.duration;
+
+    if (duration != null) {
+      fastForwardSongNotifier.value =
+          currentPosition < duration - const Duration(seconds: 5);
+      rewindSongNotifier.value = currentPosition > const Duration(seconds: 5);
+    } else {
+      fastForwardSongNotifier.value = false;
+      rewindSongNotifier.value = false;
+    }
   }
 
   void _updateSkipButtons() {
@@ -147,6 +163,10 @@ class PageManager {
 
   void next() => _audioHandler.skipToNext();
 
+  void rewind() => _audioHandler.rewind();
+
+  void fastForward() => _audioHandler.fastForward();
+
   void repeat() {
     repeatButtonNotifier.nextState();
     final repeatMode = repeatButtonNotifier.value;
@@ -172,6 +192,7 @@ class PageManager {
       _audioHandler.setShuffleMode(AudioServiceShuffleMode.none);
     }
   }
+
   Future<void> add() async {
     final songRepository = getIt<PlaylistRepository>();
     final song = await songRepository.fetchAnotherSong();
@@ -186,11 +207,13 @@ class PageManager {
     );
     _audioHandler.addQueueItem(mediaItem);
   }
+
   void remove() {
     final lastIndex = _audioHandler.queue.value.length - 1;
     if (lastIndex < 0) return;
     _audioHandler.removeQueueItemAt(lastIndex);
   }
+
   void dispose() {
     _audioHandler.customAction('dispose');
     _audioHandler.onTaskRemoved();

@@ -33,7 +33,7 @@ class _PlaylistSongScreenState extends State<PlaylistSongScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            Navigator.pop(context);
+            Navigator.of(context).popUntil((route) => route.isFirst);
             if (kDebugMode) {
               print('Back to previous screen');
             }
@@ -113,6 +113,43 @@ class Playlist extends StatelessWidget {
   }
 }
 
+//For showing Image  in the Playlist
+/*class Playlist extends StatelessWidget {
+  const Playlist({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final pageManager = getIt<PageManager>();
+    return ValueListenableBuilder<List<Uri?>>(
+      valueListenable: pageManager.playlistArtUriNotifier,
+      builder: (context, playlistArtUri, _) {
+        return ListView.builder(
+          scrollDirection: Axis.vertical,
+          shrinkWrap: true,
+          physics: const ClampingScrollPhysics(),
+          itemCount: playlistArtUri.length,
+          itemBuilder: (context, index) {
+            return Column(
+              children: [
+                InkWell(
+                  onTap: () {
+                    pageManager.skipToQueueItem(index,'');
+                  },
+                  child: ListTile(
+                      leading: Image.network(playlistArtUri[index].toString())
+                  ),
+                ),
+                const SizedBox(
+                  height: 5,
+                )
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+}*/
 class AudioProgressBar extends StatelessWidget {
   const AudioProgressBar({Key? key}) : super(key: key);
 
@@ -145,7 +182,9 @@ class AudioControlButtons extends StatelessWidget {
         children: const [
           RepeatButton(),
           PreviousSongButton(),
+          // RewindSongButton(),
           PlayButton(),
+          //FastForwardSongButton(),
           NextSongButton(),
           ShuffleButton(),
         ],
@@ -196,6 +235,42 @@ class PreviousSongButton extends StatelessWidget {
         return IconButton(
           icon: const Icon(Icons.skip_previous),
           onPressed: (isFirst) ? null : pageManager.previous,
+        );
+      },
+    );
+  }
+}
+
+class RewindSongButton extends StatelessWidget {
+  const RewindSongButton({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final pageManager = getIt<PageManager>();
+    return ValueListenableBuilder<bool>(
+      valueListenable: pageManager.rewindSongNotifier,
+      builder: (_, isFirst, __) {
+        return IconButton(
+          icon: const Icon(Icons.fast_rewind),
+          onPressed: pageManager.rewind,
+        );
+      },
+    );
+  }
+}
+
+class FastForwardSongButton extends StatelessWidget {
+  const FastForwardSongButton({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final pageManager = getIt<PageManager>();
+    return ValueListenableBuilder<bool>(
+      valueListenable: pageManager.fastForwardSongNotifier,
+      builder: (_, isFirst, __) {
+        return IconButton(
+          icon: const Icon(Icons.fast_forward),
+          onPressed: pageManager.fastForward,
         );
       },
     );

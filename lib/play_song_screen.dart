@@ -1,28 +1,22 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-
-import 'package:permission_handler/permission_handler.dart';
-
+import 'package:play_music_background/providers/music_provider.dart';
 import 'package:play_music_background/services/service_locator.dart';
+import 'package:play_music_background/utils/helper_functions.dart';
+import 'package:provider/provider.dart';
 import 'notifiers/play_button_notifier.dart';
 import 'notifiers/progress_notifier.dart';
 import 'notifiers/repeat_button_notifier.dart';
 import 'page_manager.dart';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 
-import 'dart:io';
-import 'package:encrypt/encrypt.dart' as enc;
-import 'package:path_provider/path_provider.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:http/http.dart' as http;
-
 class PlaySongScreen extends StatefulWidget {
-  final Map<String, dynamic> mediaItem;
+  final Map<String, dynamic> song;
 
   const PlaySongScreen({
     super.key,
-    required this.mediaItem,
+    required this.song,
   });
 
   @override
@@ -30,86 +24,19 @@ class PlaySongScreen extends StatefulWidget {
 }
 
 class _PlaySongScreenState extends State<PlaySongScreen> {
-  final _audioHandler = getIt<AudioHandler>();
-
-  Future<Directory?> get getExternalVisibleDir async {
-    if (await Directory(
-            '/storage/emulated/0/Android/data/com.example.play_music_background/MyEncFolder')
-        .exists()) {
-      final externalDir = Directory(
-          '/storage/emulated/0/Android/data/com.example.play_music_background/MyEncFolder');
-      return externalDir;
-    } else {
-      await Directory(
-              '/storage/emulated/0/Android/data/com.example.play_music_background/MyEncFolder')
-          .create(recursive: true);
-      final externalDir = Directory(
-          '/storage/emulated/0/Android/data/com.example.play_music_background/MyEncFolder');
-      return externalDir;
-    }
-  }
-
-  bool _isGranted = true;
-  bool _isDownloading = true;
-
-  requestStoragePermission() async {
-    if (!await Permission.storage.isGranted) {
-      PermissionStatus result = await Permission.storage.request();
-      if (result.isGranted) {
-        setState(() {
-          _isGranted = true;
-        });
-      } else {
-        _isGranted = false;
-      }
-    }
-  }
+  final audioHandler = getIt<AudioHandler>();
 
   @override
   void initState() {
     super.initState();
-
-    requestStoragePermission();
-    final queueLength = _audioHandler.queue.value.length;
-    for (int i = 1; i <= queueLength; i++) {
-      _audioHandler.removeQueueItemAt(queueLength - i);
-    }
     getIt<PageManager>().init();
-    downloadAndGetNormalFile();
+    deletedQueueItems();
   }
 
-  void downloadAndGetNormalFile() async {
-    if (_isGranted) {
-      Directory? d = await getExternalVisibleDir;
-      await _downloadAndCreate(
-          widget.mediaItem['url'], d, '${widget.mediaItem['title']}.mp3');
-      setState(() {
-        _isDownloading = false;
-      });
-      if (_isDownloading == false) {
-        var filePath = await _getNormalFile(
-          d,
-          '${widget.mediaItem['title']}.mp3',
-        );
-        widget.mediaItem["url"] = filePath;
-
-        final newMediaItem = MediaItem(
-          id: widget.mediaItem["id"],
-          title: widget.mediaItem["title"],
-          album: widget.mediaItem["album"],
-          extras: {'url': widget.mediaItem['url']},
-          artUri: Uri.parse(widget.mediaItem['artUri']!),
-        );
-        final pageManager = getIt<PageManager>();
-        _audioHandler.removeQueueItemAt(0);
-        _audioHandler.addQueueItem(newMediaItem);
-        pageManager.play();
-      }
-    } else {
-      if (kDebugMode) {
-        print('No Permission Granted');
-      }
-      requestStoragePermission();
+  deletedQueueItems() {
+    final queueLength = audioHandler.queue.value.length;
+    for (int i = 1; i < queueLength; i++) {
+      audioHandler.removeQueueItemAt(queueLength - (i + 1));
     }
   }
 
@@ -117,10 +44,22 @@ class _PlaySongScreenState extends State<PlaySongScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Playing Screen'),
+        centerTitle: true,
+        title: Text(
+          'Playing Screen',
+          style: Theme.of(context).textTheme.headlineSmall!.copyWith(
+                color: Colors.blue,
+                fontWeight: FontWeight.bold,
+              ),
+        ),
         automaticallyImplyLeading: false,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(
+            Icons.arrow_back,
+            color: Colors.blue,
+          ),
           onPressed: () {
             Navigator.pop(context);
             if (kDebugMode) {
@@ -129,137 +68,92 @@ class _PlaySongScreenState extends State<PlaySongScreen> {
           },
         ),
       ),
-      body: (_isDownloading)
-          ? Center(
-              child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                CircularProgressIndicator(),
-                SizedBox(
-                  height: 10,
-                ),
-                Text('Data Downloading ...'),
-              ],
-            ))
-          : Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                children: const [
-                  CurrentSongTitle(),
-                  Playlist(),
-                  AudioProgressBar(),
-                  AudioControlButtons(),
-                ],
-              ),
-            ),
-    );
-  }
-
-  _downloadAndCreate(String audioUrl, Directory? d, String fileName) async {
-    bool isDownloaded = await checkIfFileExists('${d!.path}/$fileName.aes');
-    if (isDownloaded) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('File already downloaded!!!'),
-          duration: Duration(
-            seconds: 1,
+      //extendBodyBehindAppBar: true,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.network(
+            widget.song['artUri'],
+            fit: BoxFit.cover,
           ),
-        ));
-      }
-    } else {
-      if (await canLaunchUrl(Uri.parse(audioUrl))) {
-        if (kDebugMode) {
-          print('Data downloading...');
-        }
-        var resp = await http.get(Uri.parse(audioUrl));
-        var encResult = _encryptData(resp.bodyBytes);
-        String p = await _writeData(encResult, '${d.path}/$fileName.aes');
-        if (kDebugMode) {
-          print('File Encrypted successfully...$p');
-        }
-      } else {
-        if (kDebugMode) {
-          print('Can\'t launch url');
-        }
-      }
-    }
-  }
-
-  Future<String> _getNormalFile(Directory? d, String fileName) async {
-    try {
-      Uint8List encData = await _readData('${d!.path}/$fileName.aes');
-      var plainData = await _decryptData(encData);
-      var tempFile = await _createTempFile(fileName);
-      tempFile.writeAsBytesSync(plainData);
-
-      if (kDebugMode) {
-        print('TempFile : ${tempFile.path}');
-      }
-      if (kDebugMode) {
-        print('File Decrypted Successfully... ');
-      }
-      return tempFile.path;
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error : ${e.toString()}');
-      }
-      return '';
-    }
-  }
-
-  Future<bool> checkIfFileExists(String filePath) async {
-    File file = File(filePath);
-    return await file.exists();
-  }
-
-  _encryptData(Uint8List plainString) {
-    if (kDebugMode) {
-      print('Encrypting File...');
-    }
-    final encrypted =
-        MyEncrypt.myEncrypter.encryptBytes(plainString, iv: MyEncrypt.myIv);
-
-    return encrypted.bytes;
-  }
-
-  _writeData(encResult, String fileNamedWithPath) async {
-    if (kDebugMode) {
-      print('Writting data...');
-    }
-    File f = File(fileNamedWithPath);
-    await f.writeAsBytes(encResult);
-    return f.absolute.toString();
-  }
-
-  _readData(String fileNamedWithPath) async {
-    if (kDebugMode) {
-      print('Reading data...');
-    }
-    File f = File(fileNamedWithPath);
-    return await f.readAsBytes();
-  }
-
-  _decryptData(Uint8List encData) {
-    if (kDebugMode) {
-      print('File decryption in progress...');
-    }
-    enc.Encrypted en = enc.Encrypted(encData);
-    return MyEncrypt.myEncrypter.decryptBytes(en, iv: MyEncrypt.myIv);
-  }
-
-  Future<File> _createTempFile(String fileName) async {
-    final directory = await getTemporaryDirectory();
-
-    final tempFilePath = '${directory.path}/$fileName';
-    return File(tempFilePath);
+          const _BackgroundFilter(),
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 20.0,
+              vertical: 50.0,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.song['title'],
+                  style: Theme.of(context).textTheme.headlineSmall!.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  widget.song['album'],
+                  maxLines: 2,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall!
+                      .copyWith(color: Colors.white),
+                ),
+                const SizedBox(height: 30),
+                //CurrentSongTitle(),
+                //Playlist(),
+                const AudioProgressBar(),
+                const AudioControlButtons(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
-class MyEncrypt {
-  static final myKey = enc.Key.fromUtf8('AshikujjamanAshikujjamanKazol299');
-  static final myIv = enc.IV.fromUtf8('KazolAshikujjama');
-  static final myEncrypter = enc.Encrypter(enc.AES(myKey));
+class _BackgroundFilter extends StatelessWidget {
+  const _BackgroundFilter({
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return ShaderMask(
+      shaderCallback: (rect) {
+        return LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.white,
+              Colors.white.withOpacity(0.5),
+              Colors.white.withOpacity(0.0),
+            ],
+            stops: const [
+              0.0,
+              0.4,
+              0.6
+            ]).createShader(rect);
+      },
+      blendMode: BlendMode.dstOut,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.deepPurple.shade200,
+              Colors.deepPurple.shade800,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class CurrentSongTitle extends StatelessWidget {
@@ -335,6 +229,14 @@ class AudioProgressBar extends StatelessWidget {
           buffered: value.buffered,
           total: value.total,
           onSeek: pageManager.seek,
+          progressBarColor: Colors.white,
+          thumbColor: Colors.white,
+          baseBarColor: Colors.grey,
+          bufferedBarColor: Colors.white38,
+          timeLabelTextStyle: const TextStyle(
+            color: Colors.white,
+          ),
+          timeLabelPadding: 5.0,
         );
       },
     );
@@ -352,10 +254,13 @@ class AudioControlButtons extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: const [
           RepeatButton(),
-          PreviousSongButton(),
+          //PreviousSongButton(),
+          RewindSongButton(),
           PlayButton(),
-          NextSongButton(),
-          ShuffleButton(),
+          FastForwardSongButton(),
+          //NextSongButton(),
+          //ShuffleButton(),
+          PlayListButton(),
         ],
       ),
     );
@@ -374,13 +279,13 @@ class RepeatButton extends StatelessWidget {
         Icon icon;
         switch (value) {
           case RepeatState.off:
-            icon = const Icon(Icons.repeat, color: Colors.grey);
+            icon = const Icon(Icons.repeat, color: Colors.white);
             break;
           case RepeatState.repeatSong:
-            icon = const Icon(Icons.repeat_one);
+            icon = const Icon(Icons.repeat_one, color: Colors.grey);
             break;
           case RepeatState.repeatPlaylist:
-            icon = const Icon(Icons.repeat);
+            icon = const Icon(Icons.repeat, color: Colors.blueGrey);
             break;
         }
         return IconButton(
@@ -402,8 +307,44 @@ class PreviousSongButton extends StatelessWidget {
       valueListenable: pageManager.isFirstSongNotifier,
       builder: (_, isFirst, __) {
         return IconButton(
-          icon: const Icon(Icons.skip_previous),
+          icon: const Icon(Icons.skip_previous, color: Colors.white),
           onPressed: (isFirst) ? null : pageManager.previous,
+        );
+      },
+    );
+  }
+}
+
+class RewindSongButton extends StatelessWidget {
+  const RewindSongButton({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final pageManager = getIt<PageManager>();
+    return ValueListenableBuilder<bool>(
+      valueListenable: pageManager.rewindSongNotifier,
+      builder: (_, isFirst, __) {
+        return IconButton(
+          icon: const Icon(Icons.fast_rewind, color: Colors.white),
+          onPressed: pageManager.rewind,
+        );
+      },
+    );
+  }
+}
+
+class FastForwardSongButton extends StatelessWidget {
+  const FastForwardSongButton({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final pageManager = getIt<PageManager>();
+    return ValueListenableBuilder<bool>(
+      valueListenable: pageManager.fastForwardSongNotifier,
+      builder: (_, isFirst, __) {
+        return IconButton(
+          icon: const Icon(Icons.fast_forward, color: Colors.white),
+          onPressed: pageManager.fastForward,
         );
       },
     );
@@ -425,17 +366,19 @@ class PlayButton extends StatelessWidget {
               margin: const EdgeInsets.all(8.0),
               width: 32.0,
               height: 32.0,
-              child: const CircularProgressIndicator(),
+              child: const CircularProgressIndicator(
+                color: Colors.white,
+              ),
             );
           case ButtonState.paused:
             return IconButton(
-              icon: const Icon(Icons.play_arrow),
+              icon: const Icon(Icons.play_arrow, color: Colors.white),
               iconSize: 32.0,
               onPressed: pageManager.play,
             );
           case ButtonState.playing:
             return IconButton(
-              icon: const Icon(Icons.pause),
+              icon: const Icon(Icons.pause, color: Colors.white),
               iconSize: 32.0,
               onPressed: pageManager.pause,
             );
@@ -455,7 +398,7 @@ class NextSongButton extends StatelessWidget {
       valueListenable: pageManager.isLastSongNotifier,
       builder: (_, isLast, __) {
         return IconButton(
-          icon: const Icon(Icons.skip_next),
+          icon: const Icon(Icons.skip_next, color: Colors.white),
           onPressed: (isLast) ? null : pageManager.next,
         );
       },
@@ -474,9 +417,27 @@ class ShuffleButton extends StatelessWidget {
       builder: (context, isEnabled, child) {
         return IconButton(
           icon: (isEnabled)
-              ? const Icon(Icons.shuffle)
+              ? const Icon(Icons.shuffle, color: Colors.white)
               : const Icon(Icons.shuffle, color: Colors.grey),
           onPressed: pageManager.shuffle,
+        );
+      },
+    );
+  }
+}
+
+class PlayListButton extends StatelessWidget {
+  const PlayListButton({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<MusicProvider>(
+      builder: (context, musicProvider, child) {
+        return IconButton(
+          icon: const Icon(Icons.playlist_play, color: Colors.white),
+          onPressed: () async {
+            showMsg(context, 'This section is not completed yet');
+          },
         );
       },
     );
