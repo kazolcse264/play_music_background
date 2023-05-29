@@ -42,13 +42,19 @@ dependencies:
   audio_video_progress_bar: ^1.0.0
   get_it: ^7.2.0
   permission_handler:
-  path_provider:
+  connectivity_plus:
   encrypt:
   url_launcher:
   get:
-  dio:
+  cached_network_image: ^3.2.3
   circular_seek_bar: ^1.1.0+2
   provider:
+  dio: ^5.1.1
+  path: ^1.8.2
+  path_provider: ^2.0.11
+  diacritic: ^0.1.1
+  filesize: ^2.0.1
+  system_info2: ^3.0.2
 
 dev_dependencies:
   flutter_test:
@@ -75,6 +81,7 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - json/
+    - assets/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

@@ -10,9 +10,7 @@ Future<AudioHandler> initAudioService() async {
       androidNotificationChannelName: 'Audio Service Demo',
       androidNotificationOngoing: true,
       androidStopForegroundOnPause: true,
-      
 
-      ///////////////
       androidNotificationClickStartsActivity: true,
       androidResumeOnClick: true,
     ),
@@ -140,11 +138,11 @@ class MyAudioHandler extends BaseAudioHandler {
   }
 
   UriAudioSource _createAudioSource(MediaItem mediaItem) {
-    return  AudioSource.uri(
+    return  /*AudioSource.uri(
       Uri.parse(mediaItem.extras?['url'] ?? 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'),
       tag: mediaItem,
-    );
-    //AudioSource.file(mediaItem.extras!['url'] as String,tag: mediaItem,);
+    );*/
+    AudioSource.file(mediaItem.extras!['url'] as String,tag: mediaItem,);
 
   }
 
@@ -225,11 +223,6 @@ class MyAudioHandler extends BaseAudioHandler {
     await _player.stop();
     return super.stop();
   }
-/*  @override
-  Future<void> onTaskRemoved() async {
-    await _player.stop();
-    await _player.dispose();
-    return super.onTaskRemoved();
-  }*/
+
 
 }

@@ -68,7 +68,6 @@ class _PlaySongScreenState extends State<PlaySongScreen> {
           },
         ),
       ),
-      //extendBodyBehindAppBar: true,
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -103,8 +102,6 @@ class _PlaySongScreenState extends State<PlaySongScreen> {
                       .copyWith(color: Colors.white),
                 ),
                 const SizedBox(height: 30),
-                //CurrentSongTitle(),
-                //Playlist(),
                 const AudioProgressBar(),
                 const AudioControlButtons(),
               ],
@@ -200,7 +197,7 @@ class Playlist extends StatelessWidget {
                     title: Text(
                       playlistTitles[index],
                     ),
-                    //trailing: AddRemoveSongButtons(),
+
                   ),
                 ),
                 const SizedBox(
@@ -248,11 +245,11 @@ class AudioControlButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return const SizedBox(
       height: 60,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: const [
+        children: [
           RepeatButton(),
           //PreviousSongButton(),
           RewindSongButton(),
@@ -433,9 +430,22 @@ class PlayListButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<MusicProvider>(
       builder: (context, musicProvider, child) {
+
         return IconButton(
           icon: const Icon(Icons.playlist_play, color: Colors.white),
           onPressed: () async {
+           /* final audioHandler = getIt<AudioHandler>();
+            final pageManager = getIt<PageManager>();
+            audioHandler.addQueueItems(musicProvider.decryptedMediaItems);
+            pageManager.play();
+
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        const PlaylistSongScreen(),
+                  ));*/
+
             showMsg(context, 'This section is not completed yet');
           },
         );

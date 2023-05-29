@@ -1,7 +1,22 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class ThemeProvider with ChangeNotifier {
+  bool _isConnected = true; // Default to true assuming internet is initially available
+
+  bool get isConnected => _isConnected;
+
+  Future<void> checkConnectivity() async {
+    var connectivityResult = await (Connectivity().checkConnectivity());
+    if (connectivityResult == ConnectivityResult.mobile ||
+        connectivityResult == ConnectivityResult.wifi) {
+      _isConnected = true;
+    } else {
+      _isConnected = false;
+    }
+    notifyListeners();
+  }
   bool _isDarkMode = false;
 
   ThemeProvider() {
@@ -17,9 +32,9 @@ class ThemeProvider with ChangeNotifier {
   }
 
   Future<void> _initializePlatformBrightness() async {
-    var brightness = WidgetsBinding.instance.window.platformBrightness;
-    WidgetsBinding.instance.window.onPlatformBrightnessChanged = () {
-      final newBrightness = WidgetsBinding.instance.window.platformBrightness;
+    var brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
+    WidgetsBinding.instance.platformDispatcher.onPlatformBrightnessChanged = () {
+      final newBrightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
       if (newBrightness != brightness) {
         _isDarkMode = newBrightness == Brightness.dark;
         brightness = newBrightness;
@@ -35,7 +50,7 @@ class ThemeProvider with ChangeNotifier {
 
   Future<Brightness> _getPlatformBrightness() async {
     return await Future.value(
-        WidgetsBinding.instance.window.platformBrightness);
+        WidgetsBinding.instance.platformDispatcher.platformBrightness);
   }
 
   ThemeData getTheme() {
@@ -114,7 +129,7 @@ class MyWidgetsBindingObserver extends WidgetsBindingObserver {
 
   @override
   void didChangePlatformBrightness() {
-    final newBrightness = WidgetsBinding.instance.window.platformBrightness;
+    final newBrightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
     final isDarkMode = newBrightness == Brightness.dark;
     themeProvider.setTheme(isDarkMode);
   }

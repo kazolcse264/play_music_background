@@ -21,7 +21,7 @@ class _PlaylistSongScreenState extends State<PlaylistSongScreen> {
   @override
   void initState() {
     super.initState();
-    getIt<PageManager>().init();
+   // getIt<PageManager>().init();
   }
 
   @override
@@ -40,10 +40,10 @@ class _PlaylistSongScreenState extends State<PlaylistSongScreen> {
           },
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
+      body: const Padding(
+        padding: EdgeInsets.all(20.0),
         child: Column(
-          children: const [
+          children: [
             CurrentSongTitle(),
             Playlist(),
             AddRemoveSongButtons(),
@@ -175,11 +175,11 @@ class AudioControlButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return const SizedBox(
       height: 60,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: const [
+        children: [
           RepeatButton(),
           PreviousSongButton(),
           // RewindSongButton(),
