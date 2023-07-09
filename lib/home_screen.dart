@@ -50,58 +50,48 @@ class _HomeScreenState extends State<HomeScreen> {
         appBar: PreferredSize(
           preferredSize: const Size.fromHeight(kToolbarHeight),
           child: Consumer<ThemeProvider>(
-            builder: (context, themeProvider, child) =>
-                Padding(
-                  padding: const EdgeInsets.only(
-                    left: 20.0,
-                    right: 20.0,
-                  ),
-                  child: AppBar(
-                    title: Text(
-                      'Trending Music List',
-                      style: Theme
-                          .of(context)
-                          .textTheme
-                          .headlineSmall!
-                          .copyWith(
+            builder: (context, themeProvider, child) => Padding(
+              padding: const EdgeInsets.only(
+                left: 20.0,
+                right: 20.0,
+              ),
+              child: AppBar(
+                title: Text(
+                  'Trending Music List',
+                  style: Theme.of(context).textTheme.headlineSmall!.copyWith(
                         color: themeProvider.isDarkMode
                             ? Colors.white
                             : Colors.blue,
                         fontWeight: FontWeight.bold,
                       ),
-                    ),
-                    backgroundColor: themeProvider.isDarkMode
-                        ? Colors.grey.shade900
-                        : Colors.white,
-                    elevation: 0,
-                    actions: [
-                      Switch(
-                        value: themeProvider.isDarkMode,
-                        onChanged: (value) {
-                          themeProvider.setTheme(value);
-                        },
-                      ),
-                    ],
-                  ),
                 ),
+                backgroundColor: themeProvider.isDarkMode
+                    ? Colors.grey.shade900
+                    : Colors.white,
+                elevation: 0,
+                actions: [
+                  Switch(
+                    value: themeProvider.isDarkMode,
+                    onChanged: (value) {
+                      themeProvider.setTheme(value);
+                    },
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
         body: SingleChildScrollView(
-          child: Consumer<ConnectivityProvider>(
+          child: _TrendingMusic(audioList: audioList)
+         /* child: Consumer<ConnectivityProvider>(
             builder: (context, connectivityProvider, child) {
               if (connectivityProvider.isConnected) {
                 return _TrendingMusic(audioList: audioList);
               } else {
                 return Center(
                   child: Container(
-                    height: MediaQuery
-                        .of(context)
-                        .size
-                        .height,
-                    width: MediaQuery
-                        .of(context)
-                        .size
-                        .width,
+                    height: MediaQuery.of(context).size.height,
+                    width: MediaQuery.of(context).size.width,
                     color: Colors.red,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -130,9 +120,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               }
             },
-          )
-          ,
-        ),),) ;
+          )*/,
+        ),
+      ),
+    );
   }
 }
 

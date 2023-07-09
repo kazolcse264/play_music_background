@@ -138,11 +138,11 @@ class MyAudioHandler extends BaseAudioHandler {
   }
 
   UriAudioSource _createAudioSource(MediaItem mediaItem) {
-    return  /*AudioSource.uri(
+    return  AudioSource.uri(
       Uri.parse(mediaItem.extras?['url'] ?? 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'),
       tag: mediaItem,
-    );*/
-    AudioSource.file(mediaItem.extras!['url'] as String,tag: mediaItem,);
+    );
+    //AudioSource.file(mediaItem.extras!['url'] as String,tag: mediaItem,);
 
   }
 

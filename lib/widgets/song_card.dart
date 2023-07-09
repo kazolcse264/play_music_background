@@ -1,12 +1,13 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:filesize/filesize.dart';
 import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:provider/provider.dart';
-import 'package:encrypt/encrypt.dart' as enc;
+
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 
@@ -18,7 +19,34 @@ import '../play_song_screen.dart';
 import '../providers/music_provider.dart';
 import '../providers/theme_provider.dart';
 import '../services/service_locator.dart';
+import '../utils/global_functions.dart';
 import '../utils/helper_functions.dart';
+
+/*Future<int> useIsolate(int c) async{
+  final ReceivePort receivePort = ReceivePort();
+
+  try{
+    await Isolate.spawn(runTask, [receivePort.sendPort,c]);
+  } on Object{
+    print("Isolate Failed");
+    receivePort.close();
+  }
+  final response = await receivePort.first;
+  print('isolate');
+  print('data Processed ${response}');
+  return response;
+}
+
+int runTask(List<dynamic> args){
+  SendPort  resultPort = args[0];
+  int value = 0;
+  for(int i = 0;i<args[1];i++) {
+    value=i++;
+    print(value);
+    Future.delayed(const Duration(milliseconds: 100));
+  }
+  Isolate.exit(resultPort,value);
+}*/
 
 class SongCard extends StatefulWidget {
   const SongCard({
@@ -38,9 +66,8 @@ class SongCard extends StatefulWidget {
 
 class _SongCardState extends State<SongCard> {
   final audioHandler = getIt<AudioHandler>();
-  bool isDownloadingCompleted = false;
-  int downloadButtonPressedCount = 1;
 
+  bool backResult = true;
   static const noFilesStr = 'No Files';
 
   final double maxAvailableMemory = 0.80; // Max limit of available memory
@@ -65,7 +92,6 @@ class _SongCardState extends State<SongCard> {
   final multipartNotifier = ValueNotifier<bool>(false);
   final localNotifier = ValueNotifier<String?>(null);
 
-
   @override
   void initState() {
     //cancelTokens = List.generate(artUriList.length, (_) => CancelToken());
@@ -85,7 +111,7 @@ class _SongCardState extends State<SongCard> {
   }
 
   _download(String fileUrl, Map<String, dynamic> song,
-      MusicProvider musicProvider) async {
+      MusicProvider musicProvider, int songIndex) async {
     before = DateTime.now();
     debugPrint('_download()...');
     localNotifier.value = null;
@@ -183,12 +209,15 @@ class _SongCardState extends State<SongCard> {
         debugPrint(
             '_download() - [index: "$i"] - fileName: "${path.basename(fileName)}", fileOriginChunkSize: "${end - start}", start: "$start", end: "$end"');
         final Future<File?> task = getChunkFileWithProgress(
-            fileUrl: fileUrl,
-            fileLocalRouteStr: fileName,
-            fileOriginChunkSize: end - start,
-            start: start,
-            end: end,
-            index: i);
+          fileUrl: fileUrl,
+          fileLocalRouteStr: fileName,
+          fileOriginChunkSize: end - start,
+          start: start,
+          end: end,
+          index: i,
+          songTitle: song['title'],
+          songIndex: songIndex,
+        );
         tasks.add(task);
       }
 
@@ -244,17 +273,20 @@ class _SongCardState extends State<SongCard> {
     /// CONVERT TO SECONDS AND GET THE SPEED IN BYTES PER SECOND
     final totalSpeed = file.lengthSync() / totalElapsed * 1000;
     debugPrint('_download()... SPEED: \n${filesize(totalSpeed.round())}ps');
-    _checkOnLocal(fileUrl: fileUrl, fileLocalRouteStr: fileLocalRouteStr);
+    await _checkOnLocal(fileUrl: fileUrl, fileLocalRouteStr: fileLocalRouteStr);
 
+    //After completing download notification showing
+    showDownloadCompleteNotification(song['title'], songIndex);
     /*After Downloading completed successfully, encrytion decryption process will start*/
 
     File fileForEncrypt = File(fileLocalRouteStr);
     Uint8List fileBytes = await fileForEncrypt.readAsBytes();
     final encryptedFileDestination = '${fileForEncrypt.path}.aes';
-    final encResult = _encryptData(fileBytes);
-    final encryptedFileFinalPath =
-        await _writeData(encResult, encryptedFileDestination);
 
+    final encResult = await useEncryptDataIsolate(fileBytes);
+
+    final encryptedFileFinalPath =
+        await useWriteDataIsolate(encResult, encryptedFileDestination);
     if (kDebugMode) {
       print('File Encrypted successfully...$encryptedFileFinalPath');
     }
@@ -269,7 +301,6 @@ class _SongCardState extends State<SongCard> {
       extras: {'url': filePath},
       artUri: Uri.parse(song['artUri']!),
     );
-
     musicProvider.addDecryptedMediaItems(newMediaItem);
     audioHandler.addQueueItem(newMediaItem);
     musicProvider.loadTempFiles();
@@ -333,28 +364,18 @@ class _SongCardState extends State<SongCard> {
 
     fileOriginSize = int.parse(response.headers.value('content-length')!);
 
-    /// ANOTHER WAY WITH HTTP
-    // final httpClient = HttpClient();
-    // final request = await httpClient.getUrl(Uri.parse(url));
-    // final response2 = await request.close();
-    // fileOriginSize = response2.contentLength;
     /// GET ORIGIN FILE SIZE - END
 
     return fileOriginSize;
   }
 
   Future<int> _getMaxMemoryUsage() async {
-
     final freePhysicalMemory = SysInfo.getFreePhysicalMemory();
-
-
     final maxMemoryUsage = (freePhysicalMemory * maxAvailableMemory).round();
     return maxMemoryUsage;
   }
 
   int _calculateOptimalMaxParallelDownloads(int fileSize, int maxMemoryUsage) {
-
-
     final maxPartSize = (maxMemoryUsage / availableCores).floor();
     final maxParallelDownloads = (fileSize / maxPartSize).ceil();
 
@@ -362,16 +383,15 @@ class _SongCardState extends State<SongCard> {
         ? availableCores
         : ((maxParallelDownloads + availableCores) / 2).floor();
 
-
     return result;
   }
 
-  _onReceiveProgress(int received, int total, index, sizes) {
+  _onReceiveProgress(
+      int received, int total, index, sizes, String songTitle, int songIndex) {
     var cancelToken = cancelTokenList.elementAt(index);
     if (!cancelToken.isCancelled) {
       int sum = sizes.fold(0, (p, c) => p + c);
       received += sum;
-
       var valueNew = received / total;
       percentNotifier.value?[index].value = valueNew;
 
@@ -392,7 +412,6 @@ class _SongCardState extends State<SongCard> {
       if (timeDifference == 0) {
         return;
       }
-
 
       var dir = path.dirname(fileLocalRouteStr);
       int sumSizes = 0;
@@ -421,6 +440,15 @@ class _SongCardState extends State<SongCard> {
       speedNotifier.value = totalSpeed;
 
       String percent = (valueNew * 100).toStringAsFixed(2);
+      var downloadingMb = (received / 1048576).toStringAsFixed(2);
+      var totalMb = (total / 1048576).toStringAsFixed(2);
+      updateDownloadProgressNotification(
+          double.parse(percent),
+          double.parse(downloadingMb),
+          double.parse(totalMb),
+          songTitle,
+          songIndex);
+
       int speed = speedNotifier.value?.ceil() ?? 0;
 
       if (minSpeed == null || (minSpeed ?? 99999) > speed) {
@@ -439,10 +467,69 @@ class _SongCardState extends State<SongCard> {
     }
   }
 
+  void updateDownloadProgressNotification(double progress, double downloadingMb,
+      double totalMb, String songTitle, int index) async {
+    FlutterLocalNotificationsPlugin notifications =
+        FlutterLocalNotificationsPlugin();
+
+    AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+      'download_progress',
+      'Download Progress',
+      icon: 'ic_download',
+      importance: Importance.high,
+      priority: Priority.high,
+      onlyAlertOnce: true,
+      showWhen: false,
+      showProgress: true,
+      maxProgress: 100,
+      progress: progress.toInt(),
+    );
+    NotificationDetails platformChannelSpecifics =
+        NotificationDetails(android: androidPlatformChannelSpecifics);
+
+    // Update the notification with the download progress
+    await notifications.show(
+      index,
+      songTitle,
+      '${downloadingMb.toStringAsFixed(2)} MB / $totalMb MB',
+      platformChannelSpecifics,
+      payload: 'progress',
+    );
+  }
+
+  void showDownloadCompleteNotification(String songTitle, int index) async {
+    FlutterLocalNotificationsPlugin notifications =
+        FlutterLocalNotificationsPlugin();
+
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+      'download_complete',
+      'Download Complete',
+      icon: 'ic_check',
+      importance: Importance.high,
+      priority: Priority.high,
+      showWhen: false,
+    );
+    const NotificationDetails platformChannelSpecifics =
+        NotificationDetails(android: androidPlatformChannelSpecifics);
+
+    // Show the download complete notification
+    await notifications.show(
+      index,
+      'Downloading Completed',
+      '$songTitle has been downloaded',
+      platformChannelSpecifics,
+      payload: 'complete',
+    );
+  }
+
   Future<File?> getChunkFileWithProgress({
     required String fileUrl,
     required String fileLocalRouteStr,
     required int fileOriginChunkSize,
+    required String songTitle,
+    required int songIndex,
     int start = 0,
     int? end,
     int index = 0,
@@ -498,7 +585,6 @@ class _SongCardState extends State<SongCard> {
           headers: {'Range': 'bytes=${start + sumSizes}-$end'},
         );
       } else {
-
         percentNotifier.value![index].value = 1.0;
 
         debugPrint(
@@ -511,7 +597,6 @@ class _SongCardState extends State<SongCard> {
         }
       }
     }
-
 
     if ((percentNotifier.value?[index].value ?? 0) < 1) {
       CancelToken cancelToken = cancelTokenList.elementAt(index);
@@ -527,7 +612,12 @@ class _SongCardState extends State<SongCard> {
             cancelToken: cancelToken,
             deleteOnError: false,
             onReceiveProgress: (int received, int total) => _onReceiveProgress(
-                received, fileOriginChunkSize, index, sizes));
+                received,
+                fileOriginChunkSize,
+                index,
+                sizes,
+                songTitle,
+                songIndex));
       } catch (e) {
         debugPrint(
             'getChunkFileWithProgress(index: "$index") - TRY dio.download() - ERROR: "${e.toString()}"');
@@ -639,10 +729,9 @@ class _SongCardState extends State<SongCard> {
     String fileName,
   ) async {
     try {
-      Uint8List encData = await _readData(encryptedFileDestination);
-      var plainData = await _decryptData(encData);
-      var tempFile = await _createTempFile(fileName);
-
+      final encData = await useReadDataIsolate(encryptedFileDestination);
+      var plainData = await useDecryptDataIsolate(encData);
+      var tempFile = await useCreateTempFileIsolate(fileName);
       tempFile.writeAsBytesSync(plainData);
       if (kDebugMode) {
         print('File Decrypted Successfully... ');
@@ -661,57 +750,12 @@ class _SongCardState extends State<SongCard> {
     return await file.exists();
   }
 
-  _encryptData(Uint8List plainString) {
-    if (kDebugMode) {
-      print('Encrypting File...');
-    }
-
-    final encrypted =
-        MyEncrypt.myEncrypter.encryptBytes(plainString, iv: MyEncrypt.myIv);
-
-    return encrypted.bytes;
-  }
-
-  _writeData(encResult, String fileNamedWithPath) async {
-    if (kDebugMode) {
-      print('Writing data...');
-    }
-
-    File f = File(fileNamedWithPath);
-    await f.writeAsBytes(encResult);
-    return f.absolute.toString();
-  }
-
-  _readData(String fileNamedWithPath) async {
-    if (kDebugMode) {
-      print('Reading data...');
-    }
-
-    File f = File(fileNamedWithPath);
-    return await f.readAsBytes();
-  }
-
-  _decryptData(Uint8List encData) {
-    if (kDebugMode) {
-      print('File decryption in progress...');
-    }
-    enc.Encrypted en = enc.Encrypted(encData);
-    return MyEncrypt.myEncrypter.decryptBytes(en, iv: MyEncrypt.myIv);
-  }
-
-  Future<File> _createTempFile(String fileName) async {
-    final directory = await getTemporaryDirectory();
-    final tempFilePath = '${directory.path}/$fileName';
-    return File(tempFilePath);
-  }
-
-
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     final musicProvider = Provider.of<MusicProvider>(context, listen: false);
     var isFileLocal = musicProvider.isFileInList(
-        '${widget.audioList[widget.index]['title']}.mp3',
+        '${widget.audioList[widget.index]['title']}.mp3.aes',
         musicProvider.mp3Files);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
@@ -722,7 +766,8 @@ class _SongCardState extends State<SongCard> {
           height: 60,
           width: 60,
           decoration: BoxDecoration(
-            color: themeProvider.isDarkMode ? Colors.grey.shade900 : Colors.white,
+            color:
+                themeProvider.isDarkMode ? Colors.grey.shade900 : Colors.white,
             borderRadius: BorderRadius.circular(30.0),
           ),
           child: ClipRRect(
@@ -730,7 +775,8 @@ class _SongCardState extends State<SongCard> {
             child: CachedNetworkImage(
               imageUrl: widget.song['artUri'],
               fit: BoxFit.fitWidth,
-              placeholder: (context, url) => const CircularProgressIndicator(color: Colors.blue,strokeWidth: 2),
+              placeholder: (context, url) => const CircularProgressIndicator(
+                  color: Colors.blue, strokeWidth: 2),
               errorWidget: (context, url, error) => const Icon(Icons.error),
             ),
           ),
@@ -750,7 +796,229 @@ class _SongCardState extends State<SongCard> {
                 fontWeight: FontWeight.bold,
               ),
         ),
+        //backResult is checking for file is downloading or just playing
         trailing: (isFileLocal)
+            ? InkWell(
+                child: const SizedBox(
+                    height: 50,
+                    width: 120,
+                    child: Center(
+                      child: Text(
+                        'Play Now',
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 20,
+                        ),
+                      ),
+                    )),
+                onTap: () async {
+                  widget.song["url"] =
+                      '/data/user/0/com.example.play_music_background/code_cache/${widget.song['title']}.mp3';
+
+                  final newMediaItem = MediaItem(
+                    id: widget.song["id"],
+                    title: widget.song["title"],
+                    album: widget.song["album"],
+                    extras: {'url': widget.song['url']},
+                    artUri: Uri.parse(widget.song['artUri']!),
+                  );
+                  audioHandler.addQueueItem(newMediaItem);
+                  final pageManager = getIt<PageManager>();
+                  pageManager.play();
+                  if (mounted) {
+                    bool? result = await Navigator.push<bool>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            PlaySongScreen(song: widget.song, justPlay: true),
+                      ),
+                    );
+
+                    if (result != null) {
+                      setState(() {
+                        backResult = result;
+                      });
+                      //backResult is true
+                    }
+                  }
+                },
+              )
+            : (backResult)
+                ? InkWell(
+                    onTap: () async {
+                      final newMediaItem = MediaItem(
+                        id: widget.song["id"],
+                        title: widget.song["title"],
+                        album: widget.song["album"],
+                        extras: {'url': widget.song['url']},
+                        artUri: Uri.parse(widget.song['artUri']!),
+                      );
+                      audioHandler.addQueueItem(newMediaItem);
+                      final pageManager = getIt<PageManager>();
+                      pageManager.play();
+                      if (mounted) {
+                        bool? result = await Navigator.push<bool>(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PlaySongScreen(
+                                song: widget.song, justPlay: false),
+                          ),
+                        );
+
+                        if (result != null) {
+                          setState(() {
+                            backResult = result;
+                          });
+                          //backResult is false
+                        }
+                      }
+                      await _download(widget.song["url"], widget.song,
+                          musicProvider, widget.index);
+                    },
+                    child: const SizedBox(
+                        height: 50,
+                        width: 120,
+                        child: Center(
+                            child: Text(
+                          'Play and Download',
+                          style: TextStyle(
+                            color: Colors.green,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 15,
+                          ),
+                        ))),
+                    /*child: Container(
+                  height: 50,
+                  width: 50,
+                  color: themeProvider.isDarkMode
+                      ? Colors.grey.shade900
+                      : Colors.white,
+                  child: Icon(
+                    Icons.play_circle,
+                    color: themeProvider.isDarkMode
+                        ? Colors.white
+                        : Colors.grey.shade900,
+                    size: 35,
+                  ),
+                ),*/
+                  )
+                : SizedBox(
+                    height: 50,
+                    width: 100,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        ValueListenableBuilder<List<ValueNotifier<double?>>?>(
+                            valueListenable: percentNotifier,
+                            builder: (context, percentList, _) {
+                              double? totalPercent = percentList?.fold(
+                                  0, (p, c) => (p ?? 0) + (c.value ?? 0));
+                              totalPercent = totalPercent ?? 0;
+                              if (percentList != null &&
+                                  percentList.isNotEmpty) {
+                                totalPercent =
+                                    totalPercent / percentList.length;
+                              }
+                              totalPercent =
+                                  (totalPercent > 1.0 ? 1.0 : totalPercent) *
+                                      100;
+                              if (percentList == null ||
+                                  percentList.isEmpty == true) {
+                                return const Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    SizedBox(
+                                      width: 40,
+                                      height: 40,
+                                      child: CircularProgressIndicator(
+                                        value: 100,
+                                        // color: Colors.grey,
+                                        color: Colors.transparent,
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              }
+                              return ValueListenableBuilder<double?>(
+                                  valueListenable: percentList.first,
+                                  builder: (context, percent, _) {
+                                    return Stack(
+                                      alignment: Alignment.center,
+                                      children: [
+                                        SizedBox(
+                                          width: 35,
+                                          height: 35,
+                                          child: CircularProgressIndicator(
+                                            value:
+                                                percent == 0 ? null : percent,
+                                            valueColor: themeProvider.isDarkMode
+                                                ? const AlwaysStoppedAnimation<
+                                                    Color>(Colors.white)
+                                                : AlwaysStoppedAnimation<Color>(
+                                                    Colors.grey.shade900),
+                                          ),
+                                        ),
+                                        Text(
+                                          '${((percent ?? 0) * 100).toStringAsFixed(0)}%',
+                                        ),
+                                      ],
+                                    );
+                                  });
+                            }),
+                        ValueListenableBuilder<double?>(
+                            valueListenable: percentTotalNotifier,
+                            builder: (context, percent, _) {
+                              return IconButton(
+                                  color: themeProvider.isDarkMode
+                                      ? Colors.white
+                                      : Colors.grey.shade900,
+                                  iconSize: 35,
+                                  //heroTag: null,
+                                  onPressed: () {
+                                    percent == 0 || percent == 1
+                                        ? null
+                                        : percent == null
+                                            ? {
+                                                _download(
+                                                    widget.song["url"],
+                                                    widget.song,
+                                                    musicProvider,
+                                                    widget.index),
+                                              }
+                                            : localNotifier.value != null
+                                                ? _download(
+                                                    widget.song["url"],
+                                                    widget.song,
+                                                    musicProvider,
+                                                    widget.index)
+                                                : _cancel(widget.song["url"]);
+                                  },
+                                  tooltip:
+                                      percent == null ? 'Download' : 'Cancel',
+                                  icon: (percent == 0)
+                                      ? SizedBox(
+                                          width: 60,
+                                          child:
+                                              Image.asset('assets/spinner.gif'),
+                                        )
+                                      : (percent == 1)
+                                          ? const Icon(
+                                              Icons.download_done_rounded)
+                                          : (percent == null)
+                                              ? const Icon(
+                                                  Icons.download_rounded)
+                                              : (localNotifier.value != null)
+                                                  ? const Icon(
+                                                      Icons.download_rounded)
+                                                  : const Icon(
+                                                      Icons.cancel_rounded));
+                            }),
+                      ],
+                    ),
+                  ),
+        /* trailing: (isFileLocal)
             ? InkWell(
                 onTap: () async {
                   widget.song["url"] =
@@ -831,6 +1099,7 @@ class _SongCardState extends State<SongCard> {
                           return ValueListenableBuilder<double?>(
                               valueListenable: percentList.first,
                               builder: (context, percent, _) {
+
                                 return Stack(
                                   alignment: Alignment.center,
                                   children: [
@@ -866,8 +1135,9 @@ class _SongCardState extends State<SongCard> {
                                 percent == 0 || percent == 1
                                     ? null
                                     : percent == null
-                                        ? _download(widget.song["url"],
-                                            widget.song, musicProvider)
+                                        ? {
+                                            _download(widget.song["url"], widget.song, musicProvider),
+                                          }
                                         : localNotifier.value != null
                                             ? _download(widget.song["url"],
                                                 widget.song, musicProvider)
@@ -891,7 +1161,7 @@ class _SongCardState extends State<SongCard> {
                         }),
                   ],
                 ),
-              ),
+              ),*/
       ),
     );
   }

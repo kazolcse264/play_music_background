@@ -13,10 +13,13 @@ import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 
 class PlaySongScreen extends StatefulWidget {
   final Map<String, dynamic> song;
+  final bool justPlay ;
 
   const PlaySongScreen({
     super.key,
     required this.song,
+    required this.justPlay,
+
   });
 
   @override
@@ -61,7 +64,7 @@ class _PlaySongScreenState extends State<PlaySongScreen> {
             color: Colors.blue,
           ),
           onPressed: () {
-            Navigator.pop(context);
+            Navigator.pop(context,widget.justPlay);
             if (kDebugMode) {
               print('Back to previous screen');
             }
