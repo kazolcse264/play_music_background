@@ -62,17 +62,18 @@ class MusicProvider extends ChangeNotifier {
   }
 
   Future<List<File>> getAllTempFiles() async {
-    //final Directory tempDir = Directory.systemTemp;
-    String? basePath = (await getExternalStorageDirectory())?.path;
+    final Directory tempDir = Directory.systemTemp;
+   /* String? basePath = (await getExternalStorageDirectory())?.path;
     String newPath = path.join(basePath!, 'Files');
-    Directory directory = Directory(newPath);
-    final List<FileSystemEntity> files = directory.listSync(recursive: true);
+    Directory directory = Directory(newPath);*/
+    final List<FileSystemEntity> files = tempDir.listSync(recursive: true);
     final List<File> mp3Files = files
         .where((file) =>
-            file.path.endsWith('.aes') &&
+            file.path.endsWith('.mp3') &&
             FileSystemEntity.isFileSync(file.path))
         .map((file) => File(file.path))
         .toList();
+    print(mp3Files);
     return mp3Files;
   }
 
