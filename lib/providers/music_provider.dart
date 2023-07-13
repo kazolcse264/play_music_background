@@ -4,10 +4,10 @@ import 'dart:io';
 import 'package:audio_service/audio_service.dart';
 
 import 'package:dio/dio.dart';
-import 'package:path/path.dart' as path;
+
 
 import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
+
 import 'package:permission_handler/permission_handler.dart';
 import 'package:encrypt/encrypt.dart' as enc;
 
@@ -73,7 +73,6 @@ class MusicProvider extends ChangeNotifier {
             FileSystemEntity.isFileSync(file.path))
         .map((file) => File(file.path))
         .toList();
-    print(mp3Files);
     return mp3Files;
   }
 

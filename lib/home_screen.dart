@@ -15,7 +15,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<dynamic> audioList = [];
-
+  List<bool> isClicked = [];
   @override
   void initState() {
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
@@ -33,6 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
         .then((value) {
       audioList = json.decode(value);
       setState(() {});
+      isClicked = List<bool>.generate(audioList.length, (index) => false);
     });
   }
 
@@ -75,7 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         body: SingleChildScrollView(
-          child: _TrendingMusic(audioList: audioList)
+          child: _TrendingMusic(audioList: audioList,isClicked: isClicked)
          /* child: Consumer<ConnectivityProvider>(
             builder: (context, connectivityProvider, child) {
               if (connectivityProvider.isConnected) {
@@ -124,8 +125,10 @@ class _TrendingMusic extends StatelessWidget {
   const _TrendingMusic({
     Key? key,
     required this.audioList,
+    required this.isClicked,
   }) : super(key: key);
   final List<dynamic> audioList;
+  final List<bool> isClicked;
 
   @override
   Widget build(BuildContext context) {
@@ -143,7 +146,7 @@ class _TrendingMusic extends StatelessWidget {
             itemCount: audioList.length,
             itemBuilder: (context, index) {
               return SongCard(
-                  song: audioList[index], audioList: audioList, index: index);
+                  song: audioList[index], audioList: audioList, index: index,isClicked: isClicked);
             },
           ),
         ],

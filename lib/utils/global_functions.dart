@@ -1,16 +1,15 @@
 import 'dart:io';
 import 'dart:isolate';
-import 'dart:typed_data';
 import 'package:encrypt/encrypt.dart' as enc;
 import 'package:flutter/foundation.dart';
 
 import '../providers/music_provider.dart';
 
-Future<dynamic> useEncryptDataIsolate(Uint8List fileBytes) async {
+Future<dynamic> useEncryptDataIsolate(Uint8List fileBytes,String encryptedFileDestination) async {
   final ReceivePort receivePort = ReceivePort();
 
   try {
-    await Isolate.spawn(encryptData, [receivePort.sendPort, fileBytes]);
+    await Isolate.spawn(encryptData, [receivePort.sendPort, fileBytes,encryptedFileDestination]);
   } on Object {
     if (kDebugMode) {
       print("Isolate Failed");
@@ -18,6 +17,9 @@ Future<dynamic> useEncryptDataIsolate(Uint8List fileBytes) async {
     receivePort.close();
   }
   final response = await receivePort.first;
+  if (kDebugMode) {
+    print('Encryption Done...');
+  }
   return response;
 }
 
@@ -50,6 +52,9 @@ Future<dynamic> useWriteDataIsolate(
     receivePort.close();
   }
   final response = await receivePort.first;
+  if (kDebugMode) {
+    print('Encryption Done...');
+  }
   return response;
 }
 
@@ -92,15 +97,19 @@ Future<File> useCreateTempFileIsolate(String fileName) async {
   }
 }
 
-encryptData(List<dynamic> args) {
+encryptData(List<dynamic> args) async {
   SendPort resultPort = args[0];
   Uint8List plainString = args[1];
+  String encryptedFileDestination = args[2];
   if (kDebugMode) {
     print('Encrypting File...');
   }
   final encrypted =
   MyEncrypt.myEncrypter.encryptBytes(plainString, iv: MyEncrypt.myIv);
-  Isolate.exit(resultPort, encrypted.bytes);
+
+  File f = File(encryptedFileDestination);
+  await f.writeAsBytes(encrypted.bytes);
+  Isolate.exit(resultPort, f.absolute.toString());
 }
 
 writeData(List<dynamic> args) async {
@@ -113,6 +122,7 @@ writeData(List<dynamic> args) async {
   File f = File(encryptedFileDestination);
   await f.writeAsBytes(encResult);
   Isolate.exit(resultPort, f.absolute.toString());
+
 }
 
 readData(List<dynamic> args) async {

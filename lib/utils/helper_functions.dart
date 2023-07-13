@@ -32,7 +32,9 @@ String getLocalCacheFilesRoute(String url, Directory dir) {
 }
 
 getCacheDirectory() async {
-  // return await getTemporaryDirectory();
-  return await getExternalStorageDirectory();
+  //return await getTemporaryDirectory();
+  //return await getExternalStorageDirectory();
+  final Directory tempDir = Directory.systemTemp;
+  return tempDir;
 }
 
