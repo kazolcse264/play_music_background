@@ -57,6 +57,7 @@ dependencies:
   system_info2: ^3.0.2
   flutter_isolate:
   flutter_local_notifications: ^15.1.0+1
+  lottie:
 
 
 dev_dependencies:

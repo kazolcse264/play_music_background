@@ -17,10 +17,54 @@ Future<dynamic> useEncryptDataIsolate(Uint8List fileBytes,String encryptedFileDe
     receivePort.close();
   }
   final response = await receivePort.first;
-  if (kDebugMode) {
-    print('Encryption Done...');
-  }
   return response;
+}
+
+encryptData(List<dynamic> args) async {
+  SendPort resultPort = args[0];
+  Uint8List plainString = args[1];
+  String encryptedFileDestination = args[2];
+
+  if (kDebugMode) {
+    print('Encrypting File...$encryptedFileDestination');
+  }
+  final encrypted =
+  MyEncrypt.myEncrypter.encryptBytes(plainString, iv: MyEncrypt.myIv);
+  Isolate.exit(resultPort, encrypted.bytes);
+}
+
+Future<dynamic> useWriteDataIsolate(
+    Uint8List fileBytes, String encryptedFileDestination) async {
+  final ReceivePort receivePort = ReceivePort();
+
+  try {
+    await Isolate.spawn(
+        writeData, [receivePort.sendPort, fileBytes, encryptedFileDestination]);
+  } on Object {
+    if (kDebugMode) {
+      print("Isolate Failed");
+    }
+    receivePort.close();
+  }
+  final response = await receivePort.first;
+
+  return response;
+}
+
+writeData(List<dynamic> args) async {
+  SendPort resultPort = args[0];
+  Uint8List encResult = args[1];
+  String encryptedFileDestination = args[2];
+  if (kDebugMode) {
+    print('Writing data...$encryptedFileDestination');
+  }
+  File f = File(encryptedFileDestination);
+  await f.writeAsBytes(encResult);
+  if (kDebugMode) {
+    print('Encryption Done...$encryptedFileDestination');
+  }
+  Isolate.exit(resultPort, f.absolute.toString());
+
 }
 
 Future<dynamic> useDecryptDataIsolate(Uint8List encData) async {
@@ -38,25 +82,29 @@ Future<dynamic> useDecryptDataIsolate(Uint8List encData) async {
   return response;
 }
 
-Future<dynamic> useWriteDataIsolate(
-    Uint8List fileBytes, String encryptedFileDestination) async {
-  final ReceivePort receivePort = ReceivePort();
-
-  try {
-    await Isolate.spawn(
-        writeData, [receivePort.sendPort, fileBytes, encryptedFileDestination]);
-  } on Object {
-    if (kDebugMode) {
-      print("Isolate Failed");
-    }
-    receivePort.close();
-  }
-  final response = await receivePort.first;
+decryptData(List<dynamic> args) {
+  SendPort resultPort = args[0];
+  Uint8List encData = args[1];
   if (kDebugMode) {
-    print('Encryption Done...');
+    print('File decryption in progress...');
   }
-  return response;
+  enc.Encrypted en = enc.Encrypted(encData);
+  Isolate.exit(
+      resultPort, MyEncrypt.myEncrypter.decryptBytes(en, iv: MyEncrypt.myIv));
 }
+
+readData(List<dynamic> args) async {
+  SendPort resultPort = args[0];
+  String fileNamedWithPath = args[1];
+
+  if (kDebugMode) {
+    print('Reading data...');
+  }
+  File f = File(fileNamedWithPath);
+  final bytes = await f.readAsBytes();
+  Isolate.exit(resultPort, bytes);
+}
+
 
 Future<dynamic> useReadDataIsolate(String encryptedFileDestination) async {
   final ReceivePort receivePort = ReceivePort();
@@ -97,56 +145,13 @@ Future<File> useCreateTempFileIsolate(String fileName) async {
   }
 }
 
-encryptData(List<dynamic> args) async {
-  SendPort resultPort = args[0];
-  Uint8List plainString = args[1];
-  String encryptedFileDestination = args[2];
-  if (kDebugMode) {
-    print('Encrypting File...');
-  }
-  final encrypted =
-  MyEncrypt.myEncrypter.encryptBytes(plainString, iv: MyEncrypt.myIv);
 
-  File f = File(encryptedFileDestination);
-  await f.writeAsBytes(encrypted.bytes);
-  Isolate.exit(resultPort, f.absolute.toString());
-}
 
-writeData(List<dynamic> args) async {
-  SendPort resultPort = args[0];
-  Uint8List encResult = args[1];
-  String encryptedFileDestination = args[2];
-  if (kDebugMode) {
-    print('Writing data...');
-  }
-  File f = File(encryptedFileDestination);
-  await f.writeAsBytes(encResult);
-  Isolate.exit(resultPort, f.absolute.toString());
 
-}
 
-readData(List<dynamic> args) async {
-  SendPort resultPort = args[0];
-  String fileNamedWithPath = args[1];
 
-  if (kDebugMode) {
-    print('Reading data...');
-  }
-  File f = File(fileNamedWithPath);
-  final bytes = await f.readAsBytes();
-  Isolate.exit(resultPort, bytes);
-}
 
-decryptData(List<dynamic> args) {
-  SendPort resultPort = args[0];
-  Uint8List encData = args[1];
-  if (kDebugMode) {
-    print('File decryption in progress...');
-  }
-  enc.Encrypted en = enc.Encrypted(encData);
-  Isolate.exit(
-      resultPort, MyEncrypt.myEncrypter.decryptBytes(en, iv: MyEncrypt.myIv));
-}
+
 
 createTempFile(List<dynamic> args) async {
   SendPort resultPort = args[0];

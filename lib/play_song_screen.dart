@@ -32,11 +32,13 @@ class _PlaySongScreenState extends State<PlaySongScreen> {
   @override
   void initState() {
     super.initState();
+    //print(widget.song);
     getIt<PageManager>().init();
     deletedQueueItems();
   }
 
   deletedQueueItems() {
+
     final queueLength = audioHandler.queue.value.length;
     for (int i = 1; i < queueLength; i++) {
       audioHandler.removeQueueItemAt(queueLength - (i + 1));
@@ -45,6 +47,7 @@ class _PlaySongScreenState extends State<PlaySongScreen> {
 
   @override
   Widget build(BuildContext context) {
+   // print(audioHandler.queue.value);
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,

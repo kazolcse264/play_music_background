@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:play_music_background/providers/music_provider.dart';
 import 'package:play_music_background/providers/theme_provider.dart';
+import 'package:play_music_background/utils/helper_functions.dart';
 import 'package:play_music_background/widgets/song_card.dart';
 import 'package:provider/provider.dart';
 
@@ -15,7 +16,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<dynamic> audioList = [];
-  List<bool> isClicked = [];
+  List<bool> backResult = [];
   @override
   void initState() {
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
@@ -28,13 +29,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   readAudio() async {
-    await DefaultAssetBundle.of(context)
-        .loadString('json/audio.json')
-        .then((value) {
-      audioList = json.decode(value);
-      setState(() {});
-      isClicked = List<bool>.generate(audioList.length, (index) => false);
-    });
+   try {
+     await DefaultAssetBundle.of(context)
+         .loadString('json/audio.json')
+         .then((value) {
+       audioList = json.decode(value);
+       setState(() {});
+       backResult = List<bool>.generate(audioList.length, (index) => false);
+     });
+   }catch (e) {
+     showMsg(context, e.toString(), second: 3);   }
   }
 
   @override
@@ -76,7 +80,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         body: SingleChildScrollView(
-          child: _TrendingMusic(audioList: audioList,isClicked: isClicked)
+          child: _TrendingMusic(audioList: audioList,backResult: backResult)
          /* child: Consumer<ConnectivityProvider>(
             builder: (context, connectivityProvider, child) {
               if (connectivityProvider.isConnected) {
@@ -125,10 +129,10 @@ class _TrendingMusic extends StatelessWidget {
   const _TrendingMusic({
     Key? key,
     required this.audioList,
-    required this.isClicked,
+    required this.backResult,
   }) : super(key: key);
   final List<dynamic> audioList;
-  final List<bool> isClicked;
+  final List<bool> backResult;
 
   @override
   Widget build(BuildContext context) {
@@ -146,7 +150,7 @@ class _TrendingMusic extends StatelessWidget {
             itemCount: audioList.length,
             itemBuilder: (context, index) {
               return SongCard(
-                  song: audioList[index], audioList: audioList, index: index,isClicked: isClicked);
+                  song: audioList[index], audioList: audioList, index: index,backResult: backResult);
             },
           ),
         ],

@@ -18,7 +18,7 @@ class MusicProvider extends ChangeNotifier {
   Map<String, double> progressValueMap = {};
   Map<String, String> localNotifierMap = {};
   List<MediaItem> mediaItems = [];
-  List<MediaItem> decryptedMediaItems = [];
+  List<MediaItem> allStoringMediaItems = [];
   String fileProcessResult = '';
   bool _isGranted = true;
 
@@ -60,7 +60,6 @@ class MusicProvider extends ChangeNotifier {
     }
     return false;
   }
-
   Future<List<File>> getAllTempFiles() async {
     final Directory tempDir = Directory.systemTemp;
    /* String? basePath = (await getExternalStorageDirectory())?.path;
@@ -76,8 +75,8 @@ class MusicProvider extends ChangeNotifier {
     return mp3Files;
   }
 
-  addDecryptedMediaItems(MediaItem mediaItem) {
-    decryptedMediaItems.add(mediaItem);
+  addForStoringMediaItems(MediaItem mediaItem) {
+    allStoringMediaItems.add(mediaItem);
     notifyListeners();
   }
 
