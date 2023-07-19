@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+
 import 'dart:io';
 
 import 'package:audio_service/audio_service.dart';
@@ -10,16 +12,46 @@ import 'package:flutter/foundation.dart';
 
 import 'package:permission_handler/permission_handler.dart';
 import 'package:encrypt/encrypt.dart' as enc;
+import 'package:shared_preferences/shared_preferences.dart';
+
 
 enum DownloadAction { download, resume }
 
 class MusicProvider extends ChangeNotifier {
+
+  //works good
+
+  late SharedPreferences _preferences;
+  static const String playbackPositionsKey = 'playbackPositions';
+  Map<String, int> playbackPositions = {};
+
+  Future<void> initialize() async {
+    _preferences = await SharedPreferences.getInstance();
+    final playbackPositionsJson = _preferences.getString(playbackPositionsKey);
+    if (playbackPositionsJson != null) {
+      final Map<String, dynamic> playbackPositionsMap = json.decode(playbackPositionsJson);
+      playbackPositions = playbackPositionsMap.map((key, value) => MapEntry(key, value as int));
+    }
+  }
+
+  int? getPosition(String id) {
+    return playbackPositions[id];
+  }
+
+  void setPosition(String id, int position) {
+    playbackPositions[id] = position;
+    _savePlaybackPositions();
+    notifyListeners();
+  }
+
+  void _savePlaybackPositions() {
+    final playbackPositionsJson = json.encode(playbackPositions);
+    _preferences.setString(playbackPositionsKey, playbackPositionsJson);
+  }
+
   List<File> mp3Files = [];
-  Map<String, double> progressValueMap = {};
-  Map<String, String> localNotifierMap = {};
-  List<MediaItem> mediaItems = [];
   List<MediaItem> allStoringMediaItems = [];
-  String fileProcessResult = '';
+
   bool _isGranted = true;
 
   bool get isGranted => _isGranted;

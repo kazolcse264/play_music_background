@@ -58,6 +58,7 @@ dependencies:
   flutter_isolate:
   flutter_local_notifications: ^15.1.0+1
   lottie:
+  shared_preferences:
 
 
 dev_dependencies:

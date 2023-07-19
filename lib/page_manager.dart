@@ -165,6 +165,7 @@ class PageManager {
 
   void rewind() => _audioHandler.rewind();
 
+
   void fastForward() => _audioHandler.fastForward();
 
   void repeat() {
