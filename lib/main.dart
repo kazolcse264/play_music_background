@@ -42,13 +42,13 @@ notificationInitialized() async{
 
   const AndroidInitializationSettings initializationSettingsAndroid =
   AndroidInitializationSettings('@mipmap/ic_launcher');
-  final DarwinInitializationSettings initializationSettingsDarwin =
+  const DarwinInitializationSettings initializationSettingsDarwin =
   DarwinInitializationSettings(
     onDidReceiveLocalNotification: onDidReceiveLocalNotification,
   );
   const LinuxInitializationSettings initializationSettingsLinux =
   LinuxInitializationSettings(defaultActionName: 'Open notification');
-  final InitializationSettings initializationSettings = InitializationSettings(
+  const InitializationSettings initializationSettings = InitializationSettings(
     android: initializationSettingsAndroid,
     iOS: initializationSettingsDarwin,
     macOS: initializationSettingsDarwin,
@@ -57,7 +57,9 @@ notificationInitialized() async{
 
   await flutterLocalNotificationsPlugin.initialize(initializationSettings);
 
+
 }
+
 void onDidReceiveLocalNotification(
     int id, String? title, String? body, String? payload) {
   // Handle the received local notification

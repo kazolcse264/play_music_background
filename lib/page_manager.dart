@@ -158,6 +158,7 @@ class PageManager {
   void pause() => _audioHandler.pause();
 
   void seek(Duration position) => _audioHandler.seek(position);
+  void setSpeed(double speed) => _audioHandler.setSpeed(speed);
 
   void previous() => _audioHandler.skipToPrevious();
 

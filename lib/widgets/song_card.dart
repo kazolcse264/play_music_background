@@ -57,12 +57,15 @@ class SongCard extends StatefulWidget {
     required this.index,
     required this.audioList,
     required this.backResult,
+    required this.onTrailingTap
   }) : super(key: key);
 
   final Map<String, dynamic> song;
   final int index;
   final List<dynamic> audioList;
   final List<bool> backResult;
+  final Function(Map<String, dynamic>) onTrailingTap;
+
 
   @override
   State<SongCard> createState() => _SongCardState();
@@ -71,6 +74,8 @@ class SongCard extends StatefulWidget {
 class _SongCardState extends State<SongCard> {
   final audioHandler = getIt<AudioHandler>();
   bool isClickedItemPlaying = false;
+  bool isPlaying = false;
+
 
   static const noFilesStr = 'No Files';
 
@@ -365,10 +370,10 @@ class _SongCardState extends State<SongCard> {
       );
 
 // Stop the playback and remove the currently playing media item from the queue
-      final pageManager = getIt<PageManager>();
+      audioHandler.stop();
       pageManager.remove();
       audioHandler.addQueueItem(newMediaItem);
-      pageManager.play();
+      audioHandler.play();
       Future.delayed(const Duration(seconds: 30)).then((value) async {
         final mergedEncryptedFilePath = '$fileEncryptionDir/${song['title']}.aes';
         await mergeAesFiles(encryptedFilePaths, mergedEncryptedFilePath);
@@ -903,7 +908,10 @@ class _SongCardState extends State<SongCard> {
     File file = File(filePath);
     return await file.exists();
   }
-
+  void _handleTrailingTap() {
+    widget.onTrailingTap(widget.song);
+   // Call the callback to show/hide the BottomNavigationBar
+  }
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
@@ -916,52 +924,69 @@ class _SongCardState extends State<SongCard> {
       child: InkWell(
         onTap: isFileLocal
             ?() async {
+          if(!widget.backResult[widget.index]){
+            final filePath =
+                '/data/user/0/com.example.play_music_background/code_cache/Files/${widget.song['title']}.mp3';
+            final isFileExists = File(filePath).existsSync();
 
-          /*final filePath =
-              '/data/user/0/com.example.play_music_background/code_cache/Files/${widget.song['title']}.mp3';
-          final isFileExists = File(filePath).existsSync();
+            if (isFileExists) {
 
-          if (isFileExists) {
+              final newMediaItem = MediaItem(
+                id: widget.song['id'],
+                title: widget.song['title'],
+                album: widget.song['album'],
+                extras: {
+                  'url': filePath,
+                  'isFile': true,
+                },
+                artUri: Uri.parse(widget.song['artUri']!),
+              );
+              pageManager.remove();
+              audioHandler.addQueueItem(newMediaItem);
+              pageManager.play();
+              if (mounted) {
+                bool? result = await Navigator.push<bool>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        PlaySongScreen(song: widget.song, justPlay: true),
+                  ),
+                );
+                if (result != null) {
+                  setState(() {
+                    widget.backResult[widget.index] = result;
+                    setFalseRestBackResult();
+                  });
+                  //backResult is false
+                }
+              }
 
-            final newMediaItem = MediaItem(
-              id: widget.song['id'],
-              title: widget.song['title'],
-              album: widget.song['album'],
-              extras: {
-                'url': filePath,
-                'isFile': true,
+              _handleTrailingTap();
 
-                'lastPlaybackPosition': musicProvider.getPosition(widget.song['id']),
-              },
-              artUri: Uri.parse(widget.song['artUri']!),
-            );
-            pageManager.remove();
-            audioHandler.addQueueItem(newMediaItem);
-
-            pageManager.play();
-          } else {
-            showMsg(context, 'File does not exist. Please download first',
-                second: 2);
-          }
-          if (mounted) {
-            bool? result = await Navigator.push<bool>(
-              context,
-              MaterialPageRoute(
-                builder: (context) =>
-                    PlaySongScreen(song: widget.song, justPlay: true),
-
-              ),
-            );
-            if (result != null) {
-              setState(() {
-                widget.backResult[widget.index] = result;
-                setFalseRestBackResult();
-              });
-              //backResult is false
+            } else {
+              showMsg(context, 'File does not exist. Please download first',
+                  second: 2);
             }
-          }*/
+          }else{
+            if (mounted) {
+              bool? result =  await Navigator.push<bool>(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      PlaySongScreen(song: widget.song, justPlay: true),
 
-             if(!widget.backResult[widget.index]){
+                ),
+              );
+              if (result != null) {
+                setState(() {
+                  widget.backResult[widget.index] = result;
+                  setFalseRestBackResult();
+                });
+                //backResult is false
+              }
+            }
+          }
+             /*if(!widget.backResult[widget.index]){
                   final filePath =
                       '/data/user/0/com.example.play_music_background/code_cache/Files/${widget.song['title']}.mp3';
                   final isFileExists = File(filePath).existsSync();
@@ -975,14 +1000,11 @@ class _SongCardState extends State<SongCard> {
                       extras: {
                         'url': filePath,
                         'isFile': true,
-
-                        'lastPlaybackPosition': musicProvider.getPosition(widget.song['id']),
                       },
                       artUri: Uri.parse(widget.song['artUri']!),
                     );
                     pageManager.remove();
                     audioHandler.addQueueItem(newMediaItem);
-
                     pageManager.play();
                   } else {
                     showMsg(context, 'File does not exist. Please download first',
@@ -1023,7 +1045,7 @@ class _SongCardState extends State<SongCard> {
                      //backResult is false
                    }
                   }
-                }
+                }*/
               }
             : widget.backResult[widget.index]
                 ? () async {
@@ -1095,6 +1117,50 @@ class _SongCardState extends State<SongCard> {
                       final filePath =
                           '/data/user/0/com.example.play_music_background/code_cache/Files/${widget.song['title']}.mp3';
                       final isFileExists = File(filePath).existsSync();
+                      if (isFileExists) {
+                        final newMediaItem = MediaItem(
+                          id: widget.song['id'],
+                          title: widget.song['title'],
+                          album: widget.song['album'],
+                          extras: {
+                            'url': filePath,
+                            'isFile': true,
+                          },
+                          artUri: Uri.parse(widget.song['artUri']!),
+                        );
+                        pageManager.remove();
+                        audioHandler.addQueueItem(newMediaItem);
+                        pageManager.play();
+                        if (mounted) {
+                          bool? result = await Navigator.push<bool>(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  PlaySongScreen(song: widget.song, justPlay: true),
+                            ),
+                          );
+
+                          if (result != null) {
+                            setState(() {
+                              widget.backResult[widget.index] = result;
+                              setFalseRestBackResult();
+                            });
+                            //backResult is false
+                          }
+                        }
+                        _handleTrailingTap();
+
+                      }
+                    }else if(isPlaying){
+                     pageManager.pause();
+                   }else{
+                     pageManager.play();
+                   }
+
+                 /*  if(!widget.backResult[widget.index]){
+                      final filePath =
+                          '/data/user/0/com.example.play_music_background/code_cache/Files/${widget.song['title']}.mp3';
+                      final isFileExists = File(filePath).existsSync();
 
                       if (isFileExists) {
                         final newMediaItem = MediaItem(
@@ -1149,7 +1215,7 @@ class _SongCardState extends State<SongCard> {
                           //backResult is false
                         }
                       }
-                    }
+                    }*/
                   },
                   child: SizedBox(
                     height: 50,
@@ -1168,7 +1234,7 @@ class _SongCardState extends State<SongCard> {
                                   valueListenable:
                                       pageManager.playButtonNotifier,
                                   builder: (_, value, __) {
-                                    final isPlaying =
+                                     isPlaying =
                                         pageManager.playButtonNotifier.value ==
                                             ButtonState.playing;
 
@@ -1211,12 +1277,10 @@ class _SongCardState extends State<SongCard> {
                             },
                             artUri: Uri.parse(widget.song['artUri']!),
                           );
-                          final pageManager = getIt<PageManager>();
                           pageManager.remove();
-
                           audioHandler.addQueueItem(newMediaItem);
                           pageManager.play();
-
+                          _handleTrailingTap();
                           _download(widget.song["url"], widget.song,
                               musicProvider, widget.index);
                           if (mounted) {

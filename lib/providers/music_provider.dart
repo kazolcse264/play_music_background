@@ -18,7 +18,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 enum DownloadAction { download, resume }
 
 class MusicProvider extends ChangeNotifier {
+  double _timeStretchFactor = 1.0;
+  double get timeStretchFactor => _timeStretchFactor;
 
+  void setTimeStretchFactor(double factor) {
+    _timeStretchFactor = factor;
+    notifyListeners();
+  }
   //works good
 
   late SharedPreferences _preferences;
@@ -41,6 +47,7 @@ class MusicProvider extends ChangeNotifier {
   void setPosition(String id, int position) {
     playbackPositions[id] = position;
     _savePlaybackPositions();
+    print(playbackPositions);
     notifyListeners();
   }
 
