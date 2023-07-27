@@ -136,15 +136,32 @@ class MyAudioHandler extends BaseAudioHandler {
     final newQueue = queue.value..add(mediaItem);
     queue.add(newQueue);
   }
+  AudioSource _createAudioSource(MediaItem mediaItem) {
+    final extras = mediaItem.extras;
+    if (extras != null) {
+      final url = extras['url'];
+      final isFile = extras['isFile'];
+      if (url != null && isFile == true) {
+        print('File is called');
+        return AudioSource.file(url as String, tag: mediaItem);
 
-  UriAudioSource _createAudioSource(MediaItem mediaItem) {
-    return  /*AudioSource.uri(
+      }
+    }
+    return AudioSource.uri(
       Uri.parse(mediaItem.extras?['url'] ?? 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'),
       tag: mediaItem,
-    );*/
-    AudioSource.file(mediaItem.extras!['url'] as String,tag: mediaItem,);
-
+    );
   }
+
+
+  /* UriAudioSource _createAudioSource(MediaItem mediaItem) {
+    return  AudioSource.uri(
+      Uri.parse(mediaItem.extras?['url'] ?? 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'),
+      tag: mediaItem,
+    );
+    //AudioSource.file(mediaItem.extras!['url'] as String,tag: mediaItem,);
+
+  }*/
 
   @override
   Future<void> removeQueueItemAt(int index) async {
@@ -167,11 +184,14 @@ class MyAudioHandler extends BaseAudioHandler {
   @override
   Future<void> play() => _player.play();
 
+
   @override
   Future<void> pause() => _player.pause();
 
   @override
   Future<void> seek(Duration position) => _player.seek(position);
+  @override
+  Future<void> setSpeed(double speed) => _player.setSpeed(speed);
 
   @override
   Future<void> skipToNext() => _player.seekToNext();
@@ -198,6 +218,7 @@ class MyAudioHandler extends BaseAudioHandler {
         break;
     }
   }
+
 
   @override
   Future<void> setShuffleMode(AudioServiceShuffleMode shuffleMode) async {

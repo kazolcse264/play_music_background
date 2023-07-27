@@ -3,14 +3,14 @@ import 'dart:io' show Directory;
 
 import 'package:diacritic/diacritic.dart';
 import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
 
-void showMsg(BuildContext context, String msg) =>
+
+void showMsg(BuildContext context, String msg,{int? second}) =>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg),
-        duration: const Duration(
-          seconds: 1,
+        duration:  Duration(
+          seconds: second ?? 1,
         ),
       ),
     );
@@ -32,6 +32,9 @@ String getLocalCacheFilesRoute(String url, Directory dir) {
 }
 
 getCacheDirectory() async {
-  // return await getTemporaryDirectory();
-  return await getExternalStorageDirectory();
+  //return await getTemporaryDirectory();
+  //return await getExternalStorageDirectory();
+  final Directory tempDir = Directory.systemTemp;
+  return tempDir;
 }
+
