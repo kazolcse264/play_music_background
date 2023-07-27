@@ -40,31 +40,37 @@ class _PlaySongScreenState extends State<PlaySongScreen> {
   final double _maxStretchFactor = 3.0;
   final double _increment = 0.5;
   bool _increasing = true;
-
-
+  final pageManager = getIt<PageManager>();
+  MediaItem? mediaItem;
 
   Timer? _songFinishedTimer;
   @override
   void initState() {
     super.initState();
     //deletedQueueItems();
-    initProvider(); // Move the initialization here
-    setupPlaybackPositionListener();
-    getIt<PageManager>().init();
-    _startSongFinishedTimer();
-    //print(Provider.of<MusicProvider>(context, listen: false).playbackPositions);
 
-if (kDebugMode) {
-  print(audioHandler.queue.value);
-}
+    getIt<PageManager>().init();
+    print(audioHandler.queue.value);
+
+    pageManager.removeQueueItemsExceptLast(widget.song['id']);
+
+    mediaItem = audioHandler.queue.value.last;
+    print(mediaItem);
+    initProvider();
+    setupPlaybackPositionListener();
+    _startSongFinishedTimer();
+    pageManager.play();
+
+
+    print('Song Screen Last ${audioHandler.queue.value.length}');
 
   }
 
   void initProvider() async {
+
     musicProvider = Provider.of<MusicProvider>(context, listen: false);
     await musicProvider.initialize();
-    currentPlaybackPosition =  musicProvider.getPosition(widget.song['id']);
-
+    currentPlaybackPosition =  musicProvider.getPosition(mediaItem!.id);
     if (currentPlaybackPosition != null && currentPlaybackPosition! > 0) {
       audioHandler.seek(Duration(seconds: currentPlaybackPosition!));
     } else {
@@ -75,7 +81,7 @@ if (kDebugMode) {
     playbackStateSubscription = audioHandler.playbackState.listen((state) {
       if (state.processingState == AudioProcessingState.ready) {
         final currentPosition = state.position.inSeconds;
-        musicProvider.setPosition(widget.song['id'], currentPosition);
+        musicProvider.setPosition(mediaItem!.id, currentPosition);
       }
     });
   }
@@ -115,7 +121,7 @@ if (kDebugMode) {
 
       if (value.current.inSeconds >= value.total.inSeconds) {
         // Song has finished, set position to 0
-        musicProvider.setPosition(widget.song['id'], 0);
+        musicProvider.setPosition(mediaItem!.id, 0);
         setState(() {
           currentPlaybackPosition = 0;
         });
@@ -169,8 +175,9 @@ if (kDebugMode) {
       body: Stack(
         fit: StackFit.expand,
         children: [
+         // Image.file(File(widget.song['artUri']),fit: BoxFit.cover,),
           Image.network(
-            widget.song['artUri'],
+            mediaItem!.artUri.toString(),
             fit: BoxFit.cover,
           ),
           const _BackgroundFilter(),
@@ -184,7 +191,7 @@ if (kDebugMode) {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.song['title'],
+                  mediaItem!.title,
                   style: Theme.of(context).textTheme.headlineSmall!.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -192,7 +199,7 @@ if (kDebugMode) {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  widget.song['album'],
+                  mediaItem!.album ?? '',
                   maxLines: 2,
                   style: Theme.of(context)
                       .textTheme
@@ -200,8 +207,8 @@ if (kDebugMode) {
                       .copyWith(color: Colors.white),
                 ),
                 const SizedBox(height: 30),
-                 AudioProgressBar(id: widget.song['id'],currentPlaybackPosition: currentPlaybackPosition ?? 0,updateCurrentPlaybackPosition: updateCurrentPlaybackPosition,),
-                 AudioControlButtons(id: widget.song['id'],currentPlaybackPosition: currentPlaybackPosition ?? 0,updateCurrentPlaybackPosition: updateCurrentPlaybackPosition,),
+                 AudioProgressBar(id: mediaItem!.id,currentPlaybackPosition: currentPlaybackPosition ?? 0,updateCurrentPlaybackPosition: updateCurrentPlaybackPosition,),
+                 AudioControlButtons(id: mediaItem!.id,currentPlaybackPosition: currentPlaybackPosition ?? 0,updateCurrentPlaybackPosition: updateCurrentPlaybackPosition,),
                 // Dropdown to select time stretching factor
 
                 InkWell(

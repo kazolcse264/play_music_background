@@ -1,10 +1,29 @@
-abstract class PlaylistRepository {
-  Future<List<Map<String, String>>> fetchInitialPlaylist();
+import '../models/media_item_model.dart';
+import '../providers/music_provider.dart';
 
-  Future<Map<String, String>> fetchAnotherSong();
+abstract class PlaylistRepository {
+  Future<List<SongModel>> fetchInitialPlaylist();
+
+  //Future<Map<String, String>> fetchAnotherSong();
 }
 
+
 class DemoPlaylist extends PlaylistRepository {
+  MusicProvider musicProvider;
+
+  DemoPlaylist(this.musicProvider);
+
+  @override
+  Future<List<SongModel>> fetchInitialPlaylist() async {
+    // Ensure the songs list is not empty before returning.
+    if (musicProvider.songs.isEmpty) {
+      await musicProvider.getAllSongs();
+    }
+    print('Repository  = ${musicProvider.songs}');
+    return musicProvider.songs;
+  }
+}
+/*class DemoPlaylist extends PlaylistRepository {
   @override
   Future<List<Map<String, String>>> fetchInitialPlaylist(
       {int length = 0}) async {
@@ -30,7 +49,7 @@ class DemoPlaylist extends PlaylistRepository {
       'artUri': artUriList[_songIndex],
     };
   }
-}
+}*/
 
 //artUriList length must be equal to _maxSongNumber length
 List<String> artUriList = [

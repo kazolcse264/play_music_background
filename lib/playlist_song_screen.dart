@@ -1,6 +1,6 @@
+import 'package:audio_service/audio_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-
 import 'package:play_music_background/services/service_locator.dart';
 import 'notifiers/play_button_notifier.dart';
 import 'notifiers/progress_notifier.dart';
@@ -18,10 +18,15 @@ class PlaylistSongScreen extends StatefulWidget {
 }
 
 class _PlaylistSongScreenState extends State<PlaylistSongScreen> {
+  final audioHandler = getIt<AudioHandler>();
   @override
   void initState() {
     super.initState();
-   // getIt<PageManager>().init();
+    getIt<PageManager>().init();
+    if (kDebugMode) {
+      print('playList screen = ${audioHandler.queue.value}');
+    }
+
   }
 
   @override
@@ -31,9 +36,9 @@ class _PlaylistSongScreenState extends State<PlaylistSongScreen> {
         title: const Text('Playlist Song Screen'),
         automaticallyImplyLeading: false,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back,color: Colors.black,),
           onPressed: () {
-            Navigator.of(context).popUntil((route) => route.isFirst);
+            Navigator.pop(context);
             if (kDebugMode) {
               print('Back to previous screen');
             }
@@ -42,14 +47,16 @@ class _PlaylistSongScreenState extends State<PlaylistSongScreen> {
       ),
       body: const Padding(
         padding: EdgeInsets.all(20.0),
-        child: Column(
-          children: [
-            CurrentSongTitle(),
-            Playlist(),
-            AddRemoveSongButtons(),
-            AudioProgressBar(),
-            AudioControlButtons(),
-          ],
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              CurrentSongTitle(),
+              Playlist(),
+              //AddRemoveSongButtons(),
+              AudioProgressBar(),
+              AudioControlButtons(),
+            ],
+          ),
         ),
       ),
     );
@@ -298,13 +305,21 @@ class PlayButton extends StatelessWidget {
             return IconButton(
               icon: const Icon(Icons.play_arrow),
               iconSize: 32.0,
-              onPressed: pageManager.play,
+              onPressed: (){
+
+                pageManager.play();
+
+              },
             );
           case ButtonState.playing:
             return IconButton(
               icon: const Icon(Icons.pause),
               iconSize: 32.0,
-              onPressed: pageManager.pause,
+              onPressed:  (){
+
+                pageManager.pause();
+
+              },
             );
         }
       },
@@ -330,7 +345,7 @@ class NextSongButton extends StatelessWidget {
   }
 }
 
-class AddRemoveSongButtons extends StatelessWidget {
+/*class AddRemoveSongButtons extends StatelessWidget {
   const AddRemoveSongButtons({Key? key}) : super(key: key);
 
   @override
@@ -355,7 +370,7 @@ class AddRemoveSongButtons extends StatelessWidget {
       ),
     );
   }
-}
+}*/
 
 class ShuffleButton extends StatelessWidget {
   const ShuffleButton({Key? key}) : super(key: key);

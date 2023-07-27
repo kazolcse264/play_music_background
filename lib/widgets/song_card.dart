@@ -941,7 +941,8 @@ class _SongCardState extends State<SongCard> {
                 },
                 artUri: Uri.parse(widget.song['artUri']!),
               );
-              pageManager.remove();
+              //pageManager.remove();
+              //audioHandler.queue.value.clear();
               audioHandler.addQueueItem(newMediaItem);
               pageManager.play();
               if (mounted) {
@@ -1128,9 +1129,12 @@ class _SongCardState extends State<SongCard> {
                           },
                           artUri: Uri.parse(widget.song['artUri']!),
                         );
-                        pageManager.remove();
+                        //pageManager.remove();
+                        audioHandler.stop();
+                        //audioHandler.queue.value.clear();
                         audioHandler.addQueueItem(newMediaItem);
-                        pageManager.play();
+                       // pageManager.removeQueueItemsExceptLast();
+                        audioHandler.play();
                         if (mounted) {
                           bool? result = await Navigator.push<bool>(
                             context,
@@ -1277,9 +1281,11 @@ class _SongCardState extends State<SongCard> {
                             },
                             artUri: Uri.parse(widget.song['artUri']!),
                           );
-                          pageManager.remove();
+                          audioHandler.stop();
+                          //audioHandler.queue.value.clear();
                           audioHandler.addQueueItem(newMediaItem);
-                          pageManager.play();
+                          //pageManager.removeQueueItemsExceptLast();
+                          //audioHandler.play();
                           _handleTrailingTap();
                           _download(widget.song["url"], widget.song,
                               musicProvider, widget.index);

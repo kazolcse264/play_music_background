@@ -142,7 +142,6 @@ class MyAudioHandler extends BaseAudioHandler {
       final url = extras['url'];
       final isFile = extras['isFile'];
       if (url != null && isFile == true) {
-        print('File is called');
         return AudioSource.file(url as String, tag: mediaItem);
 
       }
@@ -167,7 +166,6 @@ class MyAudioHandler extends BaseAudioHandler {
   Future<void> removeQueueItemAt(int index) async {
     // manage Just Audio
     _playlist.removeAt(index);
-
     // notify system
     final newQueue = queue.value..removeAt(index);
     queue.add(newQueue);

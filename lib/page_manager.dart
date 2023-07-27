@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'notifiers/play_button_notifier.dart';
 import 'notifiers/progress_notifier.dart';
@@ -24,7 +26,7 @@ class PageManager {
 
   // Events: Calls coming from the UI
   void init() async {
-    //await _loadPlaylist();
+    await _loadPlaylist();
     _listenToChangesInPlaylist();
     _listenToPlaybackState();
     _listenToCurrentPosition();
@@ -33,22 +35,22 @@ class PageManager {
     _listenToChangesInSong();
   }
 
-  /*Future<void> _loadPlaylist() async {
+  Future<void> _loadPlaylist() async {
     final songRepository = getIt<PlaylistRepository>();
     final playlist = await songRepository.fetchInitialPlaylist();
     final mediaItems = playlist
         .map(
           (song) => MediaItem(
-            id: song['id'] ?? '',
-            album: song['album'] ?? '',
-            title: song['title'] ?? '',
-            extras: {'url': song['url']},
-            artUri: Uri.parse(song['artUri']!),
+            id: song.id?.toString() ?? '',
+            album: song.album,
+            title: song.title,
+            extras: {'url': song.url},
+            artUri: Uri.file(File(song.artUri).path),
           ),
         )
         .toList();
     _audioHandler.addQueueItems(mediaItems);
-  }*/
+  }
 
   void _listenToChangesInPlaylist() {
     _audioHandler.queue.listen((playlist) {
@@ -56,11 +58,13 @@ class PageManager {
         playlistNotifier.value = [];
         currentSongTitleNotifier.value = '';
       } else {
-        final newList = playlist.map((item) => item.title).toList();
+        final newList = playlist.map((item) => item.title).toSet().toList();
         playlistNotifier.value = newList;
       }
       _updateSkipButtons();
       _updateRewindAndFastForwardButton();
+
+      print('listenToChangesInPlaylist  = ${playlistNotifier.value}');
     });
   }
 
@@ -158,6 +162,7 @@ class PageManager {
   void pause() => _audioHandler.pause();
 
   void seek(Duration position) => _audioHandler.seek(position);
+
   void setSpeed(double speed) => _audioHandler.setSpeed(speed);
 
   void previous() => _audioHandler.skipToPrevious();
@@ -165,7 +170,6 @@ class PageManager {
   void next() => _audioHandler.skipToNext();
 
   void rewind() => _audioHandler.rewind();
-
 
   void fastForward() => _audioHandler.fastForward();
 
@@ -195,7 +199,7 @@ class PageManager {
     }
   }
 
-  Future<void> add() async {
+/*  Future<void> add() async {
     final songRepository = getIt<PlaylistRepository>();
     final song = await songRepository.fetchAnotherSong();
     final mediaItem = MediaItem(
@@ -208,6 +212,54 @@ class PageManager {
       artUri: Uri.parse(song['artUri']!),
     );
     _audioHandler.addQueueItem(mediaItem);
+  }*/
+/*  void removeQueueItemsExceptLast() async {
+    // Get the current queue
+    List<MediaItem>? queue = _audioHandler.queue.value;
+    if (queue.isEmpty) {
+      return; // No items in the queue or the queue is null
+    }
+    // Find the last added item in the queue
+    MediaItem lastAddedItem = queue.last;
+     _audioHandler.queue.value.clear();
+    _audioHandler.addQueueItem(lastAddedItem);
+
+  }*/
+
+  Future<void> removeQueueItemsExceptLast(String id) async {
+    // Get the current queue
+    List<MediaItem>? queue = _audioHandler.queue.value;
+    final queueLength = _audioHandler.queue.value.length;
+    print('queueLength = $queueLength');
+
+    if (queue.isEmpty) {
+      return; // No items in the queue or the queue is null
+    }
+
+    // Create a new list to store the items to keep (with the last item included)
+    List<MediaItem> itemsToKeep = [];
+
+    // Iterate through the queue to find items that should be kept
+    for (var i = 0; i < queueLength; i++) {
+      if (queue[i].id == id) {
+        itemsToKeep.add(queue[i]);
+      }
+    }
+    // Remove all items from the queue except the last one
+    for (var i = 0; i < queueLength - 1; i++) {
+      _audioHandler.removeQueueItemAt(0);
+    }
+
+    print('itemsToKeep = ${itemsToKeep.last}');
+
+
+    print('After removing = ${_audioHandler.queue.value}');
+    // Add back the items that should be kept (with the last item included)
+     _audioHandler.addQueueItem(itemsToKeep.last);
+     _audioHandler.updateMediaItem(itemsToKeep.last) ;
+    print('page manager mediaItem = ${_audioHandler.mediaItem.value}');
+
+    print('page manager = ${_audioHandler.queue.value}');
   }
 
   void remove() {
