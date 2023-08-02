@@ -36,7 +36,9 @@ class MusicProvider extends ChangeNotifier {
           var song = SongModel.fromMap(songData);
           songs.add(song);
         }
+
         notifyListeners();
+
       } else {
         throw Exception('Request failed with status: ${response.statusCode}');
       }
@@ -44,9 +46,9 @@ class MusicProvider extends ChangeNotifier {
       throw Exception('Error occurred during API request: $e');
     }
   }
-  Future<http.Response> addSong(SongModel ebookModel) async {
+  Future<http.Response> addSong(SongModel audioBookModel) async {
     try {
-      final encodedBody = jsonEncode(ebookModel.toMap());
+      final encodedBody = jsonEncode(audioBookModel.toMap());
       final response = await http.post(
         Uri.parse('${AppConstants.baseUrl}/add'),
         body: encodedBody,
@@ -91,6 +93,7 @@ class MusicProvider extends ChangeNotifier {
           json.decode(playbackPositionsJson);
       playbackPositions =
           playbackPositionsMap.map((key, value) => MapEntry(key, value as int));
+      notifyListeners();
     }
   }
 

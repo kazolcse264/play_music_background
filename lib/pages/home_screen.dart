@@ -163,14 +163,11 @@ import 'dart:convert';
 import 'package:audio_service/audio_service.dart';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-
 import 'package:flutter/material.dart';
-
 import 'package:marquee/marquee.dart';
-
-import 'package:play_music_background/page_manager.dart';
-import 'package:play_music_background/play_song_screen.dart';
-import 'package:play_music_background/playlist_song_home_page.dart';
+import 'package:play_music_background/services/page_manager.dart';
+import 'package:play_music_background/pages/play_song_screen.dart';
+import 'package:play_music_background/pages/playlist_song_home_page.dart';
 
 import 'package:play_music_background/providers/music_provider.dart';
 import 'package:play_music_background/providers/theme_provider.dart';
@@ -179,8 +176,9 @@ import 'package:play_music_background/utils/helper_functions.dart';
 import 'package:play_music_background/widgets/song_card.dart';
 import 'package:provider/provider.dart';
 
-import 'notifiers/play_button_notifier.dart';
-import 'notifiers/progress_notifier.dart';
+import '../notifiers/play_button_notifier.dart';
+import '../notifiers/progress_notifier.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -192,12 +190,13 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   List<dynamic> audioList = [];
   List<bool> backResult = [];
-
+  final audioHandler = getIt<AudioHandler>();
   bool _bottomNavBarVisible = false;
 
   Map<String, dynamic>? playingSong;
-  final audioHandler = getIt<AudioHandler>();
+
   late MusicProvider musicProvider;
+
   int? currentPlaybackPosition;
 
   @override
@@ -237,7 +236,6 @@ class _HomeScreenState extends State<HomeScreen> {
   void initProvider() async {
     musicProvider = Provider.of<MusicProvider>(context, listen: false);
     await musicProvider.initialize();
-
   }
   @override
   Widget build(BuildContext context) {
@@ -334,7 +332,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => PlaySongScreen(
-                                        song: playingSong!, justPlay: true),
+                                        song: playingSong!, justPlay: true,),
                                   ),
                                 );
                               }
@@ -413,7 +411,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                   ),
                                   PlayButton(
-                                      id: playingSong?['id'] ?? 'No id found'),
+                                      id: playingSong?['id'] ?? 'No id found', audioHandler : audioHandler),
                                 ],
                               ),
                             ),
@@ -522,16 +520,16 @@ class AudioProgressBar extends StatelessWidget {
 
 class PlayButton extends StatelessWidget {
   final String id;
-
+final AudioHandler audioHandler;
   const PlayButton({
     Key? key,
     required this.id,
+    required this.audioHandler,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final pageManager = getIt<PageManager>();
-    final audioHandler = getIt<AudioHandler>();
     final musicProvider = Provider.of<MusicProvider>(context, listen: false);
     return ValueListenableBuilder<ButtonState>(
       valueListenable: pageManager.playButtonNotifier,
@@ -609,6 +607,7 @@ class _TrendingMusic extends StatelessWidget {
     required this.audioList,
     required this.backResult,
     required this.onSongCardTrailingTap,
+
   }) : super(key: key);
   final List<dynamic> audioList;
   final List<bool> backResult;

@@ -1,23 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:play_music_background/home_screen.dart';
+import 'package:play_music_background/pages/home_screen.dart';
 import 'package:play_music_background/providers/connection_provider.dart';
 import 'package:play_music_background/providers/music_provider.dart';
 import 'package:play_music_background/providers/theme_provider.dart';
 import 'package:provider/provider.dart';
-
 import 'services/service_locator.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   notificationInitialized();
-
   await setupServiceLocator();
   final themeProvider = ThemeProvider();
   final observer = MyWidgetsBindingObserver(themeProvider);
-
   WidgetsBinding.instance.addObserver(observer);
-
   runApp(
     MultiProvider(
       providers: [
@@ -59,7 +55,6 @@ notificationInitialized() async{
 
 
 }
-
 void onDidReceiveLocalNotification(
     int id, String? title, String? body, String? payload) {
   // Handle the received local notification

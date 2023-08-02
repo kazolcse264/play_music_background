@@ -1,17 +1,16 @@
 import 'dart:io';
-
 import 'package:audio_service/audio_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:play_music_background/playlist_song_screen.dart';
+import 'package:play_music_background/pages/playlist_song_screen.dart';
 import 'package:play_music_background/providers/music_provider.dart';
 import 'package:play_music_background/services/service_locator.dart';
 import 'package:play_music_background/utils/helper_functions.dart';
 import 'package:provider/provider.dart';
 
-import 'models/media_item_model.dart';
+import '../models/media_item_model.dart';
 
 class PlaylistSongHomePage extends StatefulWidget {
   const PlaylistSongHomePage({super.key});
@@ -37,7 +36,10 @@ class _PlaylistSongHomePageState extends State<PlaylistSongHomePage> {
   void initState() {
     if (!_isInitialized) {
       initProvider();
-      print('Init method called only once');
+      if (kDebugMode) {
+        print('Init method called only once');
+        print('playList screen = ${audioHandler.queue.value}');
+      }
       _isInitialized = true; // Set the flag to true after the setup
     }
 
@@ -89,7 +91,6 @@ class _PlaylistSongHomePageState extends State<PlaylistSongHomePage> {
             itemCount: provider.songs.length,
             itemBuilder: (context, index) {
               final song = provider.songs[index];
-              print(song.url);
               return InkWell(
                 onTap: () async {
                 /*  File file = File(song.artUri);
@@ -196,7 +197,7 @@ class _PlaylistSongHomePageState extends State<PlaylistSongHomePage> {
       builder: (context) {
         return StatefulBuilder(builder: (context,setState) {
           return AlertDialog(
-            title: const Text('Add Ebook Track'),
+            title: const Text('Add AudioBook'),
             content: SingleChildScrollView(
               child: Column(
                 //mainAxisSize: MainAxisSize.min,

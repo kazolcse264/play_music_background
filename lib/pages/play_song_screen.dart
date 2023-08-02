@@ -2,26 +2,28 @@ import 'dart:async';
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:play_music_background/pages/playlist_song_screen.dart';
 import 'package:play_music_background/providers/music_provider.dart';
 import 'package:play_music_background/services/service_locator.dart';
 import 'package:play_music_background/utils/helper_functions.dart';
 import 'package:provider/provider.dart';
 
-import 'notifiers/play_button_notifier.dart';
-import 'notifiers/progress_notifier.dart';
-import 'notifiers/repeat_button_notifier.dart';
-import 'page_manager.dart';
+import '../notifiers/play_button_notifier.dart';
+import '../notifiers/progress_notifier.dart';
+import '../notifiers/repeat_button_notifier.dart';
+import '../services/page_manager.dart';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
-
 
 class PlaySongScreen extends StatefulWidget {
   final Map<String, dynamic> song;
   final bool justPlay;
 
+
   const PlaySongScreen({
     super.key,
     required this.song,
     required this.justPlay,
+
   });
 
   @override
@@ -29,11 +31,10 @@ class PlaySongScreen extends StatefulWidget {
 }
 
 class _PlaySongScreenState extends State<PlaySongScreen> {
-  final audioHandler = getIt<AudioHandler>();
   late MusicProvider musicProvider;
   int? currentPlaybackPosition;
   StreamSubscription<PlaybackState>? playbackStateSubscription;
-
+  final audioHandler = getIt<AudioHandler>();
   // Define the minimum and maximum playback speed limits
   double _timeStretchFactor = 1.0;
   final double _minStretchFactor = 0.5;
@@ -41,50 +42,48 @@ class _PlaySongScreenState extends State<PlaySongScreen> {
   final double _increment = 0.5;
   bool _increasing = true;
   final pageManager = getIt<PageManager>();
-  MediaItem? mediaItem;
+  //MediaItem? mediaItem;
 
   Timer? _songFinishedTimer;
+
   @override
   void initState() {
     super.initState();
-    //deletedQueueItems();
-
     getIt<PageManager>().init();
-    print(audioHandler.queue.value);
-
-    pageManager.removeQueueItemsExceptLast(widget.song['id']);
-
-    mediaItem = audioHandler.queue.value.last;
-    print(mediaItem);
+    var index = pageManager.getIndexInQueue(widget.song['id']);
+    pageManager.skipToQueueItem(index);
+    pageManager.play();
     initProvider();
     setupPlaybackPositionListener();
     _startSongFinishedTimer();
-    pageManager.play();
-
-
-    print('Song Screen Last ${audioHandler.queue.value.length}');
 
   }
+
 
   void initProvider() async {
-
     musicProvider = Provider.of<MusicProvider>(context, listen: false);
     await musicProvider.initialize();
-    currentPlaybackPosition =  musicProvider.getPosition(mediaItem!.id);
+    currentPlaybackPosition = musicProvider.getPosition(widget.song['id']);
+    //print('song screen position ${musicProvider.getPosition(mediaItem!.id)}');
     if (currentPlaybackPosition != null && currentPlaybackPosition! > 0) {
-      audioHandler.seek(Duration(seconds: currentPlaybackPosition!));
+      pageManager.seek(Duration(seconds: currentPlaybackPosition!));
     } else {
-      currentPlaybackPosition = 0; // Reset the position to 0 if no stored position is available
+      currentPlaybackPosition =
+          0; // Reset the position to 0 if no stored position is available
     }
   }
+
   void setupPlaybackPositionListener() {
-    playbackStateSubscription = audioHandler.playbackState.listen((state) {
+    playbackStateSubscription =
+        audioHandler.playbackState.listen((state) {
       if (state.processingState == AudioProcessingState.ready) {
         final currentPosition = state.position.inSeconds;
-        musicProvider.setPosition(mediaItem!.id, currentPosition);
+        musicProvider.setPosition(widget.song['id'], currentPosition);
+        //print('song screen position ${musicProvider.getPosition(mediaItem!.id)}');
       }
     });
   }
+
   @override
   void dispose() {
     playbackStateSubscription?.cancel(); // Cancel the subscription
@@ -96,43 +95,46 @@ class _PlaySongScreenState extends State<PlaySongScreen> {
     if (_increasing) {
       _timeStretchFactor += _increment;
       if (_timeStretchFactor >= _maxStretchFactor) {
-       setState(() {
-         _timeStretchFactor = _maxStretchFactor;
-         _increasing = false;
-       });
+        setState(() {
+          _timeStretchFactor = _maxStretchFactor;
+          _increasing = false;
+        });
       }
-
     } else {
       _timeStretchFactor -= _increment;
       if (_timeStretchFactor <= _minStretchFactor) {
-       setState(() {
-         _timeStretchFactor = _minStretchFactor;
-         _increasing = true;
-       });
+        setState(() {
+          _timeStretchFactor = _minStretchFactor;
+          _increasing = true;
+        });
       }
     }
     return _timeStretchFactor;
   }
+
   void _startSongFinishedTimer() {
     _songFinishedTimer?.cancel();
-    _songFinishedTimer = Timer.periodic(Duration(seconds: currentPlaybackPosition ?? 1), (timer) {
+    _songFinishedTimer = Timer.periodic(
+        Duration(seconds: currentPlaybackPosition ?? 1), (timer) {
       final value = getIt<PageManager>().progressNotifier.value;
       final musicProvider = Provider.of<MusicProvider>(context, listen: false);
 
       if (value.current.inSeconds >= value.total.inSeconds) {
         // Song has finished, set position to 0
-        musicProvider.setPosition(mediaItem!.id, 0);
+        musicProvider.setPosition(widget.song['id'], 0);
         setState(() {
           currentPlaybackPosition = 0;
         });
       }
     });
   }
-  void updateCurrentPlaybackPosition(int  position) {
+
+  void updateCurrentPlaybackPosition(int position) {
     setState(() {
       currentPlaybackPosition = position;
     });
   }
+
 /*  deletedQueueItems() {
     final queueLength = audioHandler.queue.value.length;
     for (int i = 1; i < queueLength; i++) {
@@ -167,7 +169,8 @@ class _PlaySongScreenState extends State<PlaySongScreen> {
             Navigator.pop(context, widget.justPlay);
             if (kDebugMode) {
               //print('Back to previous screen');
-              print('Back to previous screen ${provider.playbackPositions}');
+              print(
+                  'Back to previous screen ${musicProvider.playbackPositions}');
             }
           },
         ),
@@ -175,9 +178,9 @@ class _PlaySongScreenState extends State<PlaySongScreen> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-         // Image.file(File(widget.song['artUri']),fit: BoxFit.cover,),
+          // Image.file(File(widget.song['artUri']),fit: BoxFit.cover,),
           Image.network(
-            mediaItem!.artUri.toString(),
+            widget.song['artUri'].toString(),
             fit: BoxFit.cover,
           ),
           const _BackgroundFilter(),
@@ -191,7 +194,7 @@ class _PlaySongScreenState extends State<PlaySongScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  mediaItem!.title,
+                  widget.song['title'],
                   style: Theme.of(context).textTheme.headlineSmall!.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -199,7 +202,7 @@ class _PlaySongScreenState extends State<PlaySongScreen> {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  mediaItem!.album ?? '',
+                  widget.song['album'] ?? '',
                   maxLines: 2,
                   style: Theme.of(context)
                       .textTheme
@@ -207,16 +210,24 @@ class _PlaySongScreenState extends State<PlaySongScreen> {
                       .copyWith(color: Colors.white),
                 ),
                 const SizedBox(height: 30),
-                 AudioProgressBar(id: mediaItem!.id,currentPlaybackPosition: currentPlaybackPosition ?? 0,updateCurrentPlaybackPosition: updateCurrentPlaybackPosition,),
-                 AudioControlButtons(id: mediaItem!.id,currentPlaybackPosition: currentPlaybackPosition ?? 0,updateCurrentPlaybackPosition: updateCurrentPlaybackPosition,),
+                AudioProgressBar(
+                  id: widget.song['id'],
+                  currentPlaybackPosition: currentPlaybackPosition ?? 0,
+                  updateCurrentPlaybackPosition: updateCurrentPlaybackPosition,
+                ),
+                AudioControlButtons(
+                  id: widget.song['id'],
+                  currentPlaybackPosition: currentPlaybackPosition ?? 0,
+                  updateCurrentPlaybackPosition: updateCurrentPlaybackPosition,
+                  audioHandler: audioHandler,
+                ),
                 // Dropdown to select time stretching factor
 
                 InkWell(
-                  onTap: (){
+                  onTap: () {
                     var result = _changeStretchFactor();
                     provider.setTimeStretchFactor(result);
                     pageManager.setSpeed(result);
-
                   },
                   child: Container(
                     width: 60,
@@ -229,7 +240,6 @@ class _PlaySongScreenState extends State<PlaySongScreen> {
                           Colors.blueAccent,
                           Colors.purpleAccent,
                         ],
-
                       ),
                       boxShadow: const <BoxShadow>[
                         BoxShadow(
@@ -240,7 +250,7 @@ class _PlaySongScreenState extends State<PlaySongScreen> {
                     ),
                     child: Center(
                       child: Text(
-                       '${_timeStretchFactor}x',
+                        '${_timeStretchFactor}x',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 18,
@@ -317,14 +327,14 @@ class CurrentSongTitle extends StatelessWidget {
   }
 }
 
-class Playlist extends StatelessWidget {
+/*class Playlist extends StatelessWidget {
   const Playlist({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final pageManager = getIt<PageManager>();
     return ValueListenableBuilder<List<String>>(
-      valueListenable: pageManager.playlistNotifier,
+      valueListenable: pageManager.multiSongPlaylistNotifier,
       builder: (context, playlistTitles, _) {
         return ListView.builder(
           scrollDirection: Axis.vertical,
@@ -355,13 +365,19 @@ class Playlist extends StatelessWidget {
       },
     );
   }
-}
+}*/
 
 class AudioProgressBar extends StatelessWidget {
   final String id;
   final int currentPlaybackPosition;
   final Function(int) updateCurrentPlaybackPosition;
-   const AudioProgressBar({Key? key,required this.id,required this.currentPlaybackPosition, required this.updateCurrentPlaybackPosition}) : super(key: key);
+
+  const AudioProgressBar(
+      {Key? key,
+      required this.id,
+      required this.currentPlaybackPosition,
+      required this.updateCurrentPlaybackPosition})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -374,9 +390,9 @@ class AudioProgressBar extends StatelessWidget {
           progress: value.current,
           buffered: value.buffered,
           total: value.total,
-          onSeek: (Duration duration){
-              musicProvider.setPosition(id, duration.inSeconds);
-             updateCurrentPlaybackPosition(duration.inSeconds);
+          onSeek: (Duration duration) {
+            musicProvider.setPosition(id, duration.inSeconds);
+            updateCurrentPlaybackPosition(duration.inSeconds);
             pageManager.seek(duration);
           },
           progressBarColor: Colors.white,
@@ -397,11 +413,18 @@ class AudioControlButtons extends StatelessWidget {
   final String id;
   final int currentPlaybackPosition;
   final Function(int) updateCurrentPlaybackPosition;
-   const AudioControlButtons( {Key? key,required this.id, required this.currentPlaybackPosition,required this.updateCurrentPlaybackPosition,}) : super(key: key);
+final AudioHandler audioHandler;
+  const AudioControlButtons({
+    Key? key,
+    required this.id,
+    required this.currentPlaybackPosition,
+    required this.updateCurrentPlaybackPosition,
+    required this.audioHandler,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return  SizedBox(
+    return SizedBox(
       height: 60,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -409,7 +432,12 @@ class AudioControlButtons extends StatelessWidget {
           const RepeatButton(),
           //PreviousSongButton(),
           const RewindSongButton(),
-          PlayButton(id:id,currentPlaybackPosition : currentPlaybackPosition,updateCurrentPlaybackPosition: updateCurrentPlaybackPosition,),
+          PlayButton(
+            id: id,
+            currentPlaybackPosition: currentPlaybackPosition,
+            updateCurrentPlaybackPosition: updateCurrentPlaybackPosition,
+            audioHandler: audioHandler,
+          ),
           const FastForwardSongButton(),
           //NextSongButton(),
           //ShuffleButton(),
@@ -461,7 +489,8 @@ class PreviousSongButton extends StatelessWidget {
       builder: (_, isFirst, __) {
         return IconButton(
           icon: const Icon(Icons.skip_previous, color: Colors.white),
-          onPressed: (isFirst) ? null : pageManager.previous,
+          onPressed:
+              (isFirst) ? null : pageManager.previous,
         );
       },
     );
@@ -508,12 +537,20 @@ class PlayButton extends StatelessWidget {
   final String id;
   final int currentPlaybackPosition;
   final Function(int) updateCurrentPlaybackPosition;
-   const PlayButton({Key? key,required this.id, required this.currentPlaybackPosition,required this.updateCurrentPlaybackPosition,}) : super(key: key);
+  final AudioHandler audioHandler;
+
+  const PlayButton({
+    Key? key,
+    required this.id,
+    required this.currentPlaybackPosition,
+    required this.updateCurrentPlaybackPosition,
+    required this.audioHandler,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final pageManager = getIt<PageManager>();
-    final audioHandler = getIt<AudioHandler>();
+
     final musicProvider = Provider.of<MusicProvider>(context, listen: false);
 
     return ValueListenableBuilder<ButtonState>(
@@ -533,9 +570,10 @@ class PlayButton extends StatelessWidget {
             return IconButton(
               icon: const Icon(Icons.play_arrow, color: Colors.white),
               iconSize: 32.0,
-              onPressed:  () {
+              onPressed: () {
                 pageManager.play();
-                resumePlayback(audioHandler, id, currentPlaybackPosition,musicProvider);
+                resumePlayback(pageManager, id, currentPlaybackPosition,
+                    musicProvider);
               },
               //onPressed: pageManager.play,
             );
@@ -554,37 +592,33 @@ class PlayButton extends StatelessWidget {
     );
   }
 
-
-  void resumePlayback(AudioHandler audioHandler, String id, int? currentPlaybackPosition,MusicProvider musicProvider) {
+  void resumePlayback(PageManager singleSongPageManager, String id,
+      int? currentPlaybackPosition, MusicProvider musicProvider) {
     final currentPosition = currentPlaybackPosition ?? 0;
-    audioHandler.seek(Duration(seconds: currentPosition));
-    audioHandler.play();
+    singleSongPageManager.seek(Duration(seconds: currentPosition));
+    singleSongPageManager.play();
   }
- /* void resumePlayback(AudioHandler audioHandler, String id, int? currentPlaybackPosition, MusicProvider musicProvider) {
+
+  /* void resumePlayback(AudioHandler audioHandler, String id, int? currentPlaybackPosition, MusicProvider musicProvider) {
     final currentPosition = currentPlaybackPosition ?? 0;
     final timeStretchedPosition = currentPosition ~/ musicProvider.timeStretchFactor;
     audioHandler.seek(Duration(seconds: timeStretchedPosition));
     audioHandler.play();
   }*/
 
-
-  void stopPlayback(AudioHandler audioHandler, String id, MusicProvider musicProvider) {
-    audioHandler.playbackState.listen((state) {
+  void stopPlayback(
+      AudioHandler singleAudioHandler, String id, MusicProvider musicProvider) {
+    singleAudioHandler.playbackState.listen((state) {
       if (state.processingState == AudioProcessingState.ready) {
         final currentPosition = state.position.inSeconds;
         if (currentPosition > 0) {
           musicProvider.setPosition(id, currentPosition);
-
         }
       }
     });
-    updateCurrentPlaybackPosition(musicProvider.getPosition(id) ?? 0);// Cancel the subscription after the first update
+    updateCurrentPlaybackPosition(musicProvider.getPosition(id) ??
+        0); // Cancel the subscription after the first update
   }
-
-
-
-
-
 }
 
 class NextSongButton extends StatelessWidget {
@@ -635,12 +669,7 @@ class PlayListButton extends StatelessWidget {
         return IconButton(
           icon: const Icon(Icons.playlist_play, color: Colors.white),
           onPressed: () async {
-            /* final audioHandler = getIt<AudioHandler>();
-            final pageManager = getIt<PageManager>();
-            audioHandler.addQueueItems(musicProvider.decryptedMediaItems);
-            pageManager.play();
-
-              Navigator.push(
+              /*Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) =>

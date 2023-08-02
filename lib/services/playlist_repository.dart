@@ -1,10 +1,10 @@
+
 import '../models/media_item_model.dart';
 import '../providers/music_provider.dart';
 
 abstract class PlaylistRepository {
   Future<List<SongModel>> fetchInitialPlaylist();
-
-  //Future<Map<String, String>> fetchAnotherSong();
+  //Future<List<Map<String, String>>> fetchInitialPlaylist();
 }
 
 
@@ -19,14 +19,16 @@ class DemoPlaylist extends PlaylistRepository {
     if (musicProvider.songs.isEmpty) {
       await musicProvider.getAllSongs();
     }
-    print('Repository  = ${musicProvider.songs}');
+
+     // print('Repository  = ${musicProvider.songs}');
+
     return musicProvider.songs;
   }
 }
 /*class DemoPlaylist extends PlaylistRepository {
   @override
   Future<List<Map<String, String>>> fetchInitialPlaylist(
-      {int length = 0}) async {
+      {int length = 5}) async {
     return List.generate(length, (index) => _nextSong());
   }
 

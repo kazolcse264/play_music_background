@@ -13,69 +13,22 @@ import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 
 import 'package:path/path.dart' as path;
-import 'package:system_info2/system_info2.dart';
+//import 'package:system_info2/system_info2.dart';
 import 'dart:io' as io;
 import '../notifiers/play_button_notifier.dart';
-import '../page_manager.dart';
-import '../play_song_screen.dart';
+import '../services/page_manager.dart';
+import '../pages/play_song_screen.dart';
 import '../providers/music_provider.dart';
 import '../providers/theme_provider.dart';
 import '../services/service_locator.dart';
 import '../utils/global_functions.dart';
 import '../utils/helper_functions.dart';
 
-/*Future<int> useIsolate(int c) async{
-  final ReceivePort receivePort = ReceivePort();
-
-  try{
-    await Isolate.spawn(runTask, [receivePort.sendPort,c]);
-  } on Object{
-    print("Isolate Failed");
-    receivePort.close();
-  }
-  final response = await receivePort.first;
-  print('isolate');
-  print('data Processed ${response}');
-  return response;
-}
-
-int runTask(List<dynamic> args){
-  SendPort  resultPort = args[0];
-  int value = 0;
-  for(int i = 0;i<args[1];i++) {
-    value=i++;
-    print(value);
-    Future.delayed(const Duration(milliseconds: 100));
-  }
-  Isolate.exit(resultPort,value);
-}*/
-
-class SongCard extends StatefulWidget {
-  const SongCard({
-    Key? key,
-    required this.song,
-    required this.index,
-    required this.audioList,
-    required this.backResult,
-    required this.onTrailingTap
-  }) : super(key: key);
-
-  final Map<String, dynamic> song;
-  final int index;
-  final List<dynamic> audioList;
-  final List<bool> backResult;
-  final Function(Map<String, dynamic>) onTrailingTap;
-
-
-  @override
-  State<SongCard> createState() => _SongCardState();
-}
-
 class _SongCardState extends State<SongCard> {
-  final audioHandler = getIt<AudioHandler>();
+
   bool isClickedItemPlaying = false;
   bool isPlaying = false;
-
+  final audioHandler = getIt<AudioHandler>();
 
   static const noFilesStr = 'No Files';
 
@@ -99,7 +52,7 @@ class _SongCardState extends State<SongCard> {
   final speedNotifier = ValueNotifier<double?>(null);
   final multipartNotifier = ValueNotifier<bool>(false);
   final localNotifier = ValueNotifier<String?>(null);
-
+  List<int> encryptedIndices = [];
   @override
   void initState() {
     initializeLocalStorageRoute();
@@ -108,7 +61,7 @@ class _SongCardState extends State<SongCard> {
 
   @override
   void dispose() {
-    audioHandler.customAction('dispose');
+    //audioHandler.customAction('dispose');
     super.dispose();
   }
 
@@ -151,13 +104,13 @@ class _SongCardState extends State<SongCard> {
     return fileOriginSize;
   }
 
-  Future<int> _getMaxMemoryUsage() async {
+ /* Future<int> _getMaxMemoryUsage() async {
     final freePhysicalMemory = SysInfo.getFreePhysicalMemory();
     final maxMemoryUsage = (freePhysicalMemory * maxAvailableMemory).round();
     return maxMemoryUsage;
-  }
+  }*/
 
-  int _calculateOptimalMaxParallelDownloads(int fileSize, int maxMemoryUsage) {
+/*  int _calculateOptimalMaxParallelDownloads(int fileSize, int maxMemoryUsage) {
     final maxPartSize = (maxMemoryUsage / availableCores).floor();
     final maxParallelDownloads = (fileSize / maxPartSize).ceil();
 
@@ -166,7 +119,7 @@ class _SongCardState extends State<SongCard> {
         : ((maxParallelDownloads + availableCores) / 2).floor();
 
     return result;
-  }
+  }*/
 
   _download(String fileUrl, Map<String, dynamic> song,
       MusicProvider musicProvider, int songIndex) async {
@@ -183,11 +136,10 @@ class _SongCardState extends State<SongCard> {
     fileUrl;
 
     List<String> encryptedFilePaths = [];
-
-    final encryptedFileRoute = await getExternalStorageDirectory();
+    //final encryptedFileRoute = await getExternalStorageDirectory();
+    final encryptedFileRoute = await getApplicationDocumentsDirectory();
     final encryptedFileRouteStr =
-        getLocalCacheFilesRoute(fileUrl, encryptedFileRoute!);
-
+        getLocalCacheFilesRoute(fileUrl, encryptedFileRoute);
     String fileEncryptionDir = path.dirname(encryptedFileRouteStr);
 
     fileLocalRouteStr = getLocalCacheFilesRoute(fileUrl, dir!);
@@ -199,7 +151,7 @@ class _SongCardState extends State<SongCard> {
     final bool fileLocalExists = file.existsSync();
     final int fileLocalSize = fileLocalExists ? file.lengthSync() : 0;
     final int? fileOriginSize = await _getOriginFileSize(fileUrl);
-    final int maxMemoryUsage = await _getMaxMemoryUsage();
+    //final int maxMemoryUsage = await _getMaxMemoryUsage();
 
     if (fileOriginSize == null) {
       if (kDebugMode) {
@@ -212,7 +164,7 @@ class _SongCardState extends State<SongCard> {
     int optimalMaxParallelDownloads = 1;
     int chunkSize = fileOriginSize;
     // For multipart downloads
-    if (true) {
+   /* if (multipartNotifier.value) {
       optimalMaxParallelDownloads =
           _calculateOptimalMaxParallelDownloads(fileOriginSize, maxMemoryUsage);
       chunkSize = (chunkSize / optimalMaxParallelDownloads).ceil();
@@ -243,7 +195,7 @@ class _SongCardState extends State<SongCard> {
         optimalMaxParallelDownloads =
             int.parse(optimalMaxParallelDownloadsFile.readAsStringSync());
       }
-    }
+    }*/
 
     debugPrint('_download() - fileBasename: "$fileBasename"');
     debugPrint('_download() - fileDir: "$fileDir"');
@@ -253,8 +205,8 @@ class _SongCardState extends State<SongCard> {
     debugPrint(
         '_download() - fileOriginSize: "$fileOriginSize" (${filesize(fileOriginSize)})');
     debugPrint('_download() - multipart: "${multipartNotifier.value}"');
-    debugPrint(
-        '_download() - maxMemoryUsage: "$maxMemoryUsage" (${filesize(maxMemoryUsage)})');
+  /*  debugPrint(
+        '_download() - maxMemoryUsage: "$maxMemoryUsage" (${filesize(maxMemoryUsage)})');*/
     debugPrint(
         '_download() - optimalMaxParallelDownloads: "$optimalMaxParallelDownloads"');
     debugPrint(
@@ -323,9 +275,16 @@ class _SongCardState extends State<SongCard> {
           result.delete();
         }
         debugPrint('_download() - MERGING...DONE');
+
+        Uint8List fileBytes = await File(fileLocalRouteStr).readAsBytes();
+
+        // Encryption
+        final encryptedFileDestination = '${File(fileLocalRouteStr).path}.aes';
+        encryptedFilePaths.add(encryptedFileDestination);
+        final encResult = await useEncryptDataIsolate(fileBytes, encryptedFileDestination);
+        await useWriteDataIsolate(encResult, encryptedFileDestination);
       }
 
-      /* await mergeAesFiles( fileDir, optimalMaxParallelDownloads,'${song['title']}');*/
     } else {
       percentNotifier.value = List.from([ValueNotifier<double>(1.0)]);
       debugPrint('_download() - [ALREADY DOWNLOADED]');
@@ -365,16 +324,16 @@ class _SongCardState extends State<SongCard> {
         id: song['id'],
         title: song['title'],
         album: song['album'],
-        extras: {'url': song["url"]},
+        extras: {'url': song["url"],'isFile': true,},
         artUri: Uri.parse(song['artUri']!),
       );
 
-// Stop the playback and remove the currently playing media item from the queue
-      audioHandler.stop();
+
+      pageManager.stop();
       pageManager.remove();
       audioHandler.addQueueItem(newMediaItem);
-      audioHandler.play();
-      Future.delayed(const Duration(seconds: 30)).then((value) async {
+      pageManager.play();
+      Future.delayed(const Duration(seconds: 10)).then((value) async {
         final mergedEncryptedFilePath = '$fileEncryptionDir/${song['title']}.aes';
         await mergeAesFiles(encryptedFilePaths, mergedEncryptedFilePath);
         for (String filePath in encryptedFilePaths) {
@@ -383,34 +342,6 @@ class _SongCardState extends State<SongCard> {
       });
     });
 
-
-    /*After Downloading completed successfully, encrytion decryption process will start*/
-/*
-    File fileForEncrypt = File(fileLocalRouteStr);
-    Uint8List fileBytes = await fileForEncrypt.readAsBytes();
-    final encryptedFileDestination = '${fileForEncrypt.path}.aes';
-
-    final encResult = await useEncryptDataIsolate(fileBytes);
-
-    final encryptedFileFinalPath = await useWriteDataIsolate(encResult, encryptedFileDestination);
-    if (kDebugMode) {
-      print('File Encrypted successfully...$encryptedFileFinalPath');
-    }
-    var filePath =
-        await getNormalFile(encryptedFileDestination, '${song['title']}.mp3');
-
-    song["url"] = filePath;
-    final newMediaItem = MediaItem(
-      id: song['id'],
-      title: song['title'],
-      album: song['album'],
-      extras: {'url': filePath},
-      artUri: Uri.parse(song['artUri']!),
-    );
-    musicProvider.addDecryptedMediaItems(newMediaItem);
-    audioHandler.addQueueItem(newMediaItem);*/
-
-    /*deleteLocal(fileForEncrypt);*/
   }
 
   Future<File?> getChunkFileWithProgress({
@@ -615,9 +546,9 @@ class _SongCardState extends State<SongCard> {
       String percent = (valueNew * 100).toStringAsFixed(2);
 
       await performDownloading(
-          totalPercent!, totalPercent, fileOriginSize, songTitle, songIndex);
+          /*totalPercent!*/double.parse(percent), totalPercent!, fileOriginSize, songTitle, songIndex);
 
-      if ((percentNotifier.value?[index].value ?? 0).toInt() == 1) {
+      /*if ((percentNotifier.value?[index].value ?? 0).toInt() == 1) {
 
         // Read file bytes
         String fileName = path.basenameWithoutExtension(encryptedFileRouteStr);
@@ -638,7 +569,7 @@ class _SongCardState extends State<SongCard> {
         //encryptedFilePaths.add(encryptedFileDestination);
         // Decryption
         //await getNormalFile(encryptedFileDestination, '$modifiedFileName.mp3');
-      }
+      }*/
 
       int speed = speedNotifier.value?.ceil() ?? 0;
 
@@ -926,7 +857,8 @@ class _SongCardState extends State<SongCard> {
             ?() async {
           if(!widget.backResult[widget.index]){
             final filePath =
-                '/data/user/0/com.example.play_music_background/code_cache/Files/${widget.song['title']}.mp3';
+                /*'/data/user/0/com.example.play_music_background/code_cache/Files/${widget.song['title']}.mp3';*/
+                '/data/user/0/com.example.play_music_background/app_flutter/Files/${widget.song['title']}.mp3';
             final isFileExists = File(filePath).existsSync();
 
             if (isFileExists) {
@@ -941,16 +873,17 @@ class _SongCardState extends State<SongCard> {
                 },
                 artUri: Uri.parse(widget.song['artUri']!),
               );
+
+              pageManager.stop();
               //pageManager.remove();
-              //audioHandler.queue.value.clear();
               audioHandler.addQueueItem(newMediaItem);
-              pageManager.play();
+              //pageManager.play();
               if (mounted) {
                 bool? result = await Navigator.push<bool>(
                   context,
                   MaterialPageRoute(
                     builder: (context) =>
-                        PlaySongScreen(song: widget.song, justPlay: true),
+                        PlaySongScreen(song: widget.song, justPlay: true,),
                   ),
                 );
                 if (result != null) {
@@ -974,7 +907,7 @@ class _SongCardState extends State<SongCard> {
                 context,
                 MaterialPageRoute(
                   builder: (context) =>
-                      PlaySongScreen(song: widget.song, justPlay: true),
+                      PlaySongScreen(song: widget.song, justPlay: true,),
 
                 ),
               );
@@ -1055,7 +988,7 @@ class _SongCardState extends State<SongCard> {
                         context,
                         MaterialPageRoute(
                           builder: (context) =>
-                              PlaySongScreen(song: widget.song, justPlay: true),
+                              PlaySongScreen(song: widget.song, justPlay: true,),
                         ),
                       );
 
@@ -1116,7 +1049,8 @@ class _SongCardState extends State<SongCard> {
                   onTap: () async {
                     if(!widget.backResult[widget.index]){
                       final filePath =
-                          '/data/user/0/com.example.play_music_background/code_cache/Files/${widget.song['title']}.mp3';
+                          /*'/data/user/0/com.example.play_music_background/code_cache/Files/${widget.song['title']}.mp3';*/
+                          '/data/user/0/com.example.play_music_background/app_flutter/Files/${widget.song['title']}.mp3';
                       final isFileExists = File(filePath).existsSync();
                       if (isFileExists) {
                         final newMediaItem = MediaItem(
@@ -1129,18 +1063,15 @@ class _SongCardState extends State<SongCard> {
                           },
                           artUri: Uri.parse(widget.song['artUri']!),
                         );
-                        //pageManager.remove();
-                        audioHandler.stop();
-                        //audioHandler.queue.value.clear();
-                        audioHandler.addQueueItem(newMediaItem);
-                       // pageManager.removeQueueItemsExceptLast();
-                        audioHandler.play();
+                        pageManager.stop();
+                     audioHandler.addQueueItem(newMediaItem);
+
                         if (mounted) {
                           bool? result = await Navigator.push<bool>(
                             context,
                             MaterialPageRoute(
                               builder: (context) =>
-                                  PlaySongScreen(song: widget.song, justPlay: true),
+                                  PlaySongScreen(song: widget.song, justPlay: true,),
                             ),
                           );
 
@@ -1156,9 +1087,9 @@ class _SongCardState extends State<SongCard> {
 
                       }
                     }else if(isPlaying){
-                     pageManager.pause();
+                      pageManager.pause();
                    }else{
-                     pageManager.play();
+                      pageManager.play();
                    }
 
                  /*  if(!widget.backResult[widget.index]){
@@ -1236,10 +1167,10 @@ class _SongCardState extends State<SongCard> {
                           return isClickedItemPlaying
                               ? ValueListenableBuilder<ButtonState>(
                                   valueListenable:
-                                      pageManager.playButtonNotifier,
+                                  pageManager.playButtonNotifier,
                                   builder: (_, value, __) {
                                      isPlaying =
-                                        pageManager.playButtonNotifier.value ==
+                                         pageManager.playButtonNotifier.value ==
                                             ButtonState.playing;
 
                                     return isPlaying
@@ -1281,11 +1212,8 @@ class _SongCardState extends State<SongCard> {
                             },
                             artUri: Uri.parse(widget.song['artUri']!),
                           );
-                          audioHandler.stop();
-                          //audioHandler.queue.value.clear();
-                          audioHandler.addQueueItem(newMediaItem);
-                          //pageManager.removeQueueItemsExceptLast();
-                          //audioHandler.play();
+                          pageManager.stop();
+                        audioHandler.addQueueItem(newMediaItem);
                           _handleTrailingTap();
                           _download(widget.song["url"], widget.song,
                               musicProvider, widget.index);
@@ -1294,7 +1222,7 @@ class _SongCardState extends State<SongCard> {
                               context,
                               MaterialPageRoute(
                                 builder: (context) => PlaySongScreen(
-                                    song: widget.song, justPlay: true),
+                                    song: widget.song, justPlay: true,),
                               ),
                             );
 
@@ -1312,7 +1240,7 @@ class _SongCardState extends State<SongCard> {
                               context,
                               MaterialPageRoute(
                                 builder: (context) =>
-                                    PlaySongScreen(song: widget.song, justPlay: true),
+                                    PlaySongScreen(song: widget.song, justPlay: true,),
                               ),
                             );
                             if (result != null) {
@@ -1432,7 +1360,7 @@ class _SongCardState extends State<SongCard> {
                                                       widget.song,
                                                       musicProvider,
                                                       widget.index)
-                                                  : null; //_cancel(widget.song["url"]);
+                                                  : _cancel(widget.song["url"]);
                                     },
                                     tooltip:
                                         percent == null ? 'Download' : 'Cancel',
@@ -1453,7 +1381,7 @@ class _SongCardState extends State<SongCard> {
                                                         Icons.download_rounded)
                                                     : const Icon(
                                                         Icons.cancel_rounded,
-                                                        color: Colors.white,
+                                                       // color: Colors.white,
                                                       ));
                               }),
                         ],
@@ -1474,16 +1402,62 @@ class _SongCardState extends State<SongCard> {
 
   Future<void> performDownloading(double totalPercent, double received,
       int fileOriginSize, String songTitle, int songIndex) async {
-    /*   received += received;
-    print('received = $received');*/
     var downloadingMb = (received * 100).toStringAsFixed(2);
     var totalMb = (fileOriginSize / 1048576).toStringAsFixed(2);
     updateDownloadProgressNotification(
-      double.parse((totalPercent * 100).toStringAsFixed(2)),
+      //double.parse((totalPercent * 100).toStringAsFixed(2)),
+      double.parse(downloadingMb),
       double.parse(downloadingMb),
       double.parse(totalMb),
       songTitle,
       songIndex,
     );
   }
+}
+
+/*Future<int> useIsolate(int c) async{
+  final ReceivePort receivePort = ReceivePort();
+
+  try{
+    await Isolate.spawn(runTask, [receivePort.sendPort,c]);
+  } on Object{
+    print("Isolate Failed");
+    receivePort.close();
+  }
+  final response = await receivePort.first;
+  print('isolate');
+  print('data Processed ${response}');
+  return response;
+}
+
+int runTask(List<dynamic> args){
+  SendPort  resultPort = args[0];
+  int value = 0;
+  for(int i = 0;i<args[1];i++) {
+    value=i++;
+    print(value);
+    Future.delayed(const Duration(milliseconds: 100));
+  }
+  Isolate.exit(resultPort,value);
+}*/
+
+class SongCard extends StatefulWidget {
+  const SongCard({
+    Key? key,
+    required this.song,
+    required this.index,
+    required this.audioList,
+    required this.backResult,
+    required this.onTrailingTap
+  }) : super(key: key);
+
+  final Map<String, dynamic> song;
+  final int index;
+  final List<dynamic> audioList;
+  final List<bool> backResult;
+  final Function(Map<String, dynamic>) onTrailingTap;
+
+
+  @override
+  State<SongCard> createState() => _SongCardState();
 }

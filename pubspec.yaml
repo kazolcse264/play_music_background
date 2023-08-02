@@ -47,20 +47,17 @@ dependencies:
   url_launcher:
   get:
   cached_network_image: ^3.2.3
-  circular_seek_bar: ^1.1.0+2
   provider:
   dio: ^5.1.1
   path: ^1.8.2
   path_provider: ^2.0.11
   diacritic: ^0.1.1
   filesize: ^2.0.1
-  system_info2: ^3.0.2
   flutter_isolate:
   flutter_local_notifications: ^15.1.0+1
   lottie:
   shared_preferences:
   marquee:
-  flutter_form_builder:
   image_picker:
   file_picker:
 
