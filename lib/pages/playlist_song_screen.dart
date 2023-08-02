@@ -1,11 +1,11 @@
+import 'package:audio_service/audio_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-
 import 'package:play_music_background/services/service_locator.dart';
-import 'notifiers/play_button_notifier.dart';
-import 'notifiers/progress_notifier.dart';
-import 'notifiers/repeat_button_notifier.dart';
-import 'page_manager.dart';
+import '../notifiers/play_button_notifier.dart';
+import '../notifiers/progress_notifier.dart';
+import '../notifiers/repeat_button_notifier.dart';
+import '../services/page_manager.dart';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 
 class PlaylistSongScreen extends StatefulWidget {
@@ -18,10 +18,21 @@ class PlaylistSongScreen extends StatefulWidget {
 }
 
 class _PlaylistSongScreenState extends State<PlaylistSongScreen> {
+  final audioHandler = getIt<AudioHandler>();
+
   @override
   void initState() {
     super.initState();
-   // getIt<PageManager>().init();
+    getIt<PageManager>().init();
+    if (kDebugMode) {
+      print('playList screen = ${audioHandler.queue.value}');
+    }
+  }
+
+  @override
+  void dispose() {
+    //audioHandler.customAction('dispose');
+    super.dispose();
   }
 
   @override
@@ -31,9 +42,13 @@ class _PlaylistSongScreenState extends State<PlaylistSongScreen> {
         title: const Text('Playlist Song Screen'),
         automaticallyImplyLeading: false,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(
+            Icons.arrow_back,
+            color: Colors.black,
+          ),
           onPressed: () {
-            Navigator.of(context).popUntil((route) => route.isFirst);
+            Navigator.pop(context);
+           // Navigator.of(context).popUntil((route) => route.isFirst);
             if (kDebugMode) {
               print('Back to previous screen');
             }
@@ -42,14 +57,16 @@ class _PlaylistSongScreenState extends State<PlaylistSongScreen> {
       ),
       body: const Padding(
         padding: EdgeInsets.all(20.0),
-        child: Column(
-          children: [
-            CurrentSongTitle(),
-            Playlist(),
-            AddRemoveSongButtons(),
-            AudioProgressBar(),
-            AudioControlButtons(),
-          ],
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              CurrentSongTitle(),
+              Playlist(),
+              //AddRemoveSongButtons(),
+              AudioProgressBar(),
+              AudioControlButtons(),
+            ],
+          ),
         ),
       ),
     );
@@ -80,6 +97,15 @@ class Playlist extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pageManager = getIt<PageManager>();
+/*
+    List<String> updatedPlaylistTitles = [];
+    final playlistTitles = pageManager.playlistNotifier.value;
+print('playlistTitles = $playlistTitles');
+    for (var title in playlistTitles) {
+      if (isTitleInSongs(title, provider.songs)) {
+        updatedPlaylistTitles.add(title);
+      }
+    }*/
     return ValueListenableBuilder<List<String>>(
       valueListenable: pageManager.playlistNotifier,
       builder: (context, playlistTitles, _) {
@@ -87,17 +113,22 @@ class Playlist extends StatelessWidget {
           scrollDirection: Axis.vertical,
           shrinkWrap: true,
           physics: const ClampingScrollPhysics(),
+          // itemCount: updatedPlaylistTitles.length,
           itemCount: playlistTitles.length,
           itemBuilder: (context, index) {
+            // final title = updatedPlaylistTitles[index];
+            final title = playlistTitles[index];
             return Column(
               children: [
                 InkWell(
                   onTap: () {
-                    pageManager.skipToQueueItem(index, playlistTitles[index]);
+                    pageManager.skipToQueueItem(
+                      index,
+                    );
                   },
                   child: ListTile(
                     title: Text(
-                      playlistTitles[index],
+                      title,
                     ),
                   ),
                 ),
@@ -234,7 +265,8 @@ class PreviousSongButton extends StatelessWidget {
       builder: (_, isFirst, __) {
         return IconButton(
           icon: const Icon(Icons.skip_previous),
-          onPressed: (isFirst) ? null : pageManager.previous,
+          onPressed:
+              (isFirst) ? null : pageManager.previous,
         );
       },
     );
@@ -298,13 +330,17 @@ class PlayButton extends StatelessWidget {
             return IconButton(
               icon: const Icon(Icons.play_arrow),
               iconSize: 32.0,
-              onPressed: pageManager.play,
+              onPressed: () {
+                pageManager.play();
+              },
             );
           case ButtonState.playing:
             return IconButton(
               icon: const Icon(Icons.pause),
               iconSize: 32.0,
-              onPressed: pageManager.pause,
+              onPressed: () {
+                pageManager.pause();
+              },
             );
         }
       },
@@ -330,7 +366,7 @@ class NextSongButton extends StatelessWidget {
   }
 }
 
-class AddRemoveSongButtons extends StatelessWidget {
+/*class AddRemoveSongButtons extends StatelessWidget {
   const AddRemoveSongButtons({Key? key}) : super(key: key);
 
   @override
@@ -355,7 +391,7 @@ class AddRemoveSongButtons extends StatelessWidget {
       ),
     );
   }
-}
+}*/
 
 class ShuffleButton extends StatelessWidget {
   const ShuffleButton({Key? key}) : super(key: key);
